@@ -57,7 +57,7 @@ export default function StyleRecommendations() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wishlist", userId] });
       toast({
         title: "Added to wishlist",
         description: "Style saved successfully",
@@ -75,7 +75,7 @@ export default function StyleRecommendations() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wishlist", userId] });
       toast({
         title: "Removed from wishlist",
         description: "Style removed successfully",

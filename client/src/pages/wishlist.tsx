@@ -42,7 +42,7 @@ export default function Wishlist() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wishlist", userId] });
       toast({
         title: "Removed from wishlist",
         description: "Item removed successfully",

@@ -66,7 +66,7 @@ export default function Products() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wishlist", userId] });
       toast({
         title: "Added to wishlist",
         description: "Product saved successfully",
@@ -84,7 +84,7 @@ export default function Products() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wishlist", userId] });
       toast({
         title: "Removed from wishlist",
         description: "Product removed successfully",
