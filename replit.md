@@ -8,6 +8,10 @@ A premium web-based fashion styling application that provides personalized outfi
 **Last Updated**: October 18, 2025
 
 ## Recent Changes
+- **October 18, 2025**: Expanded body type selection with comprehensive options
+  - Women: 16 body types (Petite, Slim, Athletic, Rectangle, Hourglass, Curvy Hourglass, Pear, Triangle, Sporty, Inverted Triangle, Apple, Round Apple, Full Figure, Plus Size, Voluptuous, Curvy Plus)
+  - Men: 15 body types (Very Slim, Slim, Lean Athletic, Rectangle, Medium, Triangle, Inverted Triangle, Broad Shoulder, Trapezoid, Muscular, Stocky, Oval, Heavyset, Large Frame, Plus Size)
+  - Updated to 4-column grid layout with silhouette images and gold checkmark for selected state
 - Initial project setup with luxury design system
 - Implemented complete onboarding flow with gender and body type selection
 - Created occasion-based browsing and style recommendations

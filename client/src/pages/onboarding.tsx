@@ -7,72 +7,40 @@ import { User, Users } from "lucide-react";
 import type { BodyType } from "@shared/schema";
 
 const BODY_TYPES_FEMALE: BodyType[] = [
-  {
-    id: "hourglass",
-    name: "Hourglass",
-    description: "Balanced bust and hips with defined waist",
-    gender: "female",
-    illustration: "H",
-  },
-  {
-    id: "pear",
-    name: "Pear",
-    description: "Hips wider than bust and shoulders",
-    gender: "female",
-    illustration: "A",
-  },
-  {
-    id: "apple",
-    name: "Apple",
-    description: "Bust wider than hips, fuller midsection",
-    gender: "female",
-    illustration: "O",
-  },
-  {
-    id: "rectangle",
-    name: "Rectangle",
-    description: "Bust, waist, and hips similar width",
-    gender: "female",
-    illustration: "I",
-  },
-  {
-    id: "inverted-triangle",
-    name: "Inverted Triangle",
-    description: "Shoulders broader than hips",
-    gender: "female",
-    illustration: "V",
-  },
+  { id: "petite", name: "Petite", description: "Small frame with delicate proportions", gender: "female", illustration: "petite-female" },
+  { id: "slim", name: "Slim", description: "Narrow build throughout", gender: "female", illustration: "slim-female" },
+  { id: "athletic", name: "Athletic", description: "Toned and fit physique", gender: "female", illustration: "athletic-female" },
+  { id: "rectangle", name: "Rectangle", description: "Bust, waist, and hips similar width", gender: "female", illustration: "rectangle-female" },
+  { id: "hourglass", name: "Hourglass", description: "Balanced bust and hips with defined waist", gender: "female", illustration: "hourglass-female" },
+  { id: "curvy-hourglass", name: "Curvy Hourglass", description: "Pronounced curves with defined waist", gender: "female", illustration: "curvy-hourglass-female" },
+  { id: "pear", name: "Pear", description: "Hips wider than bust and shoulders", gender: "female", illustration: "pear-female" },
+  { id: "triangle", name: "Triangle", description: "Lower body fuller than upper", gender: "female", illustration: "triangle-female" },
+  { id: "sporty", name: "Sporty", description: "Athletic with minimal curves", gender: "female", illustration: "sporty-female" },
+  { id: "inverted-triangle", name: "Inverted Triangle", description: "Shoulders broader than hips", gender: "female", illustration: "inverted-triangle-female" },
+  { id: "apple", name: "Apple", description: "Bust wider than hips, fuller midsection", gender: "female", illustration: "apple-female" },
+  { id: "round-apple", name: "Round Apple", description: "Rounded midsection", gender: "female", illustration: "round-apple-female" },
+  { id: "full-figure", name: "Full Figure", description: "Balanced proportions with fuller build", gender: "female", illustration: "full-figure-female" },
+  { id: "plus-size", name: "Plus Size", description: "Curvy with generous proportions", gender: "female", illustration: "plus-size-female" },
+  { id: "voluptuous", name: "Voluptuous", description: "Full curves throughout", gender: "female", illustration: "voluptuous-female" },
+  { id: "curvy-plus", name: "Curvy Plus", description: "Plus size with pronounced curves", gender: "female", illustration: "curvy-plus-female" },
 ];
 
 const BODY_TYPES_MALE: BodyType[] = [
-  {
-    id: "rectangle-male",
-    name: "Rectangle",
-    description: "Shoulders and waist similar width",
-    gender: "male",
-    illustration: "I",
-  },
-  {
-    id: "trapezoid-male",
-    name: "Trapezoid",
-    description: "Broad shoulders, narrow waist",
-    gender: "male",
-    illustration: "T",
-  },
-  {
-    id: "inverted-triangle-male",
-    name: "Inverted Triangle",
-    description: "Wide shoulders, narrow hips",
-    gender: "male",
-    illustration: "V",
-  },
-  {
-    id: "oval-male",
-    name: "Oval",
-    description: "Fuller midsection, rounded shape",
-    gender: "male",
-    illustration: "O",
-  },
+  { id: "very-slim", name: "Very Slim", description: "Extremely lean build", gender: "male", illustration: "very-slim-male" },
+  { id: "slim", name: "Slim", description: "Narrow frame throughout", gender: "male", illustration: "slim-male" },
+  { id: "lean-athletic", name: "Lean Athletic", description: "Fit with low body fat", gender: "male", illustration: "lean-athletic-male" },
+  { id: "rectangle-male", name: "Rectangle", description: "Shoulders and waist similar width", gender: "male", illustration: "rectangle-male" },
+  { id: "medium", name: "Medium", description: "Average proportions", gender: "male", illustration: "medium-male" },
+  { id: "triangle", name: "Triangle", description: "Lower body fuller than upper", gender: "male", illustration: "triangle-male" },
+  { id: "inverted-triangle-male", name: "Inverted Triangle", description: "Wide shoulders, narrow hips", gender: "male", illustration: "inverted-triangle-male" },
+  { id: "broad-shoulder", name: "Broad Shoulder", description: "Wide upper body frame", gender: "male", illustration: "broad-shoulder-male" },
+  { id: "trapezoid", name: "Trapezoid", description: "Broad shoulders, narrow waist", gender: "male", illustration: "trapezoid-male" },
+  { id: "muscular", name: "Muscular", description: "Well-developed muscle mass", gender: "male", illustration: "muscular-male" },
+  { id: "stocky", name: "Stocky", description: "Compact and solid build", gender: "male", illustration: "stocky-male" },
+  { id: "oval", name: "Oval", description: "Fuller midsection, rounded shape", gender: "male", illustration: "oval-male" },
+  { id: "heavyset", name: "Heavyset", description: "Larger overall frame", gender: "male", illustration: "heavyset-male" },
+  { id: "large-frame", name: "Large Frame", description: "Broad build with size", gender: "male", illustration: "large-frame-male" },
+  { id: "plus-size-male", name: "Plus Size", description: "Generous proportions", gender: "male", illustration: "plus-size-male" },
 ];
 
 export default function Onboarding() {
@@ -185,7 +153,7 @@ export default function Onboarding() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
               {bodyTypes.map((bodyType) => (
                 <BodyTypeCard
                   key={bodyType.id}
