@@ -1,6 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Check } from "lucide-react";
 import type { BodyType } from "@shared/schema";
+
+// Male body type images
 import verySlimMale from "@assets/Very Slim_1761223075102.png";
 import slimMale from "@assets/Slim_1761223075100.png";
 import leanAthleticMale from "@assets/Lean Athletic_1761223075101.png";
@@ -17,6 +19,24 @@ import heavysetMale from "@assets/Heavyset_1761223075103.png";
 import largeFrameMale from "@assets/Large frame_1761223075103.png";
 import plusSizeMale from "@assets/Plus Size_1761223075100.png";
 
+// Female body type images
+import petiteFemale from "@assets/Petite_1761223629845.png";
+import slimFemale from "@assets/Slim_1761223629842.png";
+import athleticFemale from "@assets/Athletic_1761223629843.png";
+import rectangleFemale from "@assets/Rectangle_1761223629843.png";
+import hourglassFemale from "@assets/Hourglass_1761223629844.png";
+import curvyHourglassFemale from "@assets/Curvy Hourglass_1761223629843.png";
+import pearFemale from "@assets/Pear_1761223629843.png";
+import triangleFemale from "@assets/triangle_1761223629844.png";
+import sportyFemale from "@assets/Sporty_1761223629845.png";
+import invertedTriangleFemale from "@assets/Inverted Triangle_1761223629841.png";
+import appleFemale from "@assets/Apple_1761223629841.png";
+import roundAppleFemale from "@assets/Round Apple_1761223629845.png";
+import fullFigureFemale from "@assets/Full Figure_1761223629846.png";
+import plusSizeFemale from "@assets/Plus Size_1761223629842.png";
+import voluptuousFemale from "@assets/Voluptuous_1761223629844.png";
+import curvyPlusFemale from "@assets/Curvy +_1761223629842.png";
+
 interface BodyTypeCardProps {
   bodyType: BodyType;
   selected?: boolean;
@@ -26,22 +46,22 @@ interface BodyTypeCardProps {
 const getSilhouetteImage = (illustration: string) => {
   const imageMap: Record<string, string> = {
     // Female silhouettes
-    "petite-female": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=600&fit=crop&crop=top",
-    "slim-female": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=600&fit=crop&crop=top",
-    "athletic-female": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=600&fit=crop&crop=top",
-    "rectangle-female": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=600&fit=crop&crop=top",
-    "hourglass-female": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop&crop=top",
-    "curvy-hourglass-female": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=600&fit=crop&crop=top",
-    "pear-female": "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?w=400&h=600&fit=crop&crop=top",
-    "triangle-female": "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400&h=600&fit=crop&crop=top",
-    "sporty-female": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400&h=600&fit=crop&crop=top",
-    "inverted-triangle-female": "https://images.unsplash.com/photo-1479936343636-73cdc5aae0c3?w=400&h=600&fit=crop&crop=top",
-    "apple-female": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=600&fit=crop&crop=top",
-    "round-apple-female": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=600&fit=crop&crop=top",
-    "full-figure-female": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop&crop=top",
-    "plus-size-female": "https://images.unsplash.com/photo-1499887142886-791eca5918cd?w=400&h=600&fit=crop&crop=top",
-    "voluptuous-female": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=600&fit=crop&crop=top",
-    "curvy-plus-female": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=600&fit=crop&crop=top",
+    "petite-female": petiteFemale,
+    "slim-female": slimFemale,
+    "athletic-female": athleticFemale,
+    "rectangle-female": rectangleFemale,
+    "hourglass-female": hourglassFemale,
+    "curvy-hourglass-female": curvyHourglassFemale,
+    "pear-female": pearFemale,
+    "triangle-female": triangleFemale,
+    "sporty-female": sportyFemale,
+    "inverted-triangle-female": invertedTriangleFemale,
+    "apple-female": appleFemale,
+    "round-apple-female": roundAppleFemale,
+    "full-figure-female": fullFigureFemale,
+    "plus-size-female": plusSizeFemale,
+    "voluptuous-female": voluptuousFemale,
+    "curvy-plus-female": curvyPlusFemale,
     // Male silhouettes
     "very-slim-male": verySlimMale,
     "slim-male": slimMale,
@@ -59,7 +79,7 @@ const getSilhouetteImage = (illustration: string) => {
     "large-frame-male": largeFrameMale,
     "plus-size-male": plusSizeMale,
   };
-  return imageMap[illustration] || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=600&fit=crop&crop=top";
+  return imageMap[illustration] || petiteFemale;
 };
 
 export function BodyTypeCard({ bodyType, selected, onSelect }: BodyTypeCardProps) {
