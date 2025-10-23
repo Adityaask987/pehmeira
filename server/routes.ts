@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertWishlistItemSchema, updateUserProfileSchema } from "@shared/schema";
+import { fetchRetailProducts, fetchProductById, findSimilarProducts } from "./retail-api";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -55,6 +56,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { category } = req.query;
       const products = await storage.getProducts(category as string);
+      res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Retail API endpoints for live product search
+  app.get("/api/retail/products", async (req, res) => {
+    try {
+      const { category, minPrice, maxPrice, brands, gender, query } = req.query;
+      
+      const filters = {
+        category: category as string,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        brands: brands ? (brands as string).split(',') : undefined,
+        gender: gender as string,
+        query: query as string,
+      };
+      
+      const products = await fetchRetailProducts(filters);
+      res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/retail/products/:id", async (req, res) => {
+    try {
+      const product = await fetchProductById(req.params.id);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      res.json(product);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/retail/products/:id/similar", async (req, res) => {
+    try {
+      const limit = req.query.limit ? Number(req.query.limit) : 10;
+      const products = await findSimilarProducts(req.params.id, limit);
       res.json(products);
     } catch (error: any) {
       res.status(500).json({ message: error.message });

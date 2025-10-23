@@ -15,6 +15,7 @@ export function Header({ wishlistCount = 0 }: HeaderProps) {
   const navItems = [
     { path: "/occasions", label: "DISCOVER" },
     { path: "/products", label: "SHOP" },
+    { path: "/retail-products", label: "LIVE PRODUCTS" },
     { path: "/wishlist", label: "WISHLIST" },
   ];
 

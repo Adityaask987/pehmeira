@@ -7,6 +7,7 @@ import Onboarding from "@/pages/onboarding";
 import OccasionSelection from "@/pages/occasion-selection";
 import StyleRecommendations from "@/pages/style-recommendations";
 import Products from "@/pages/products";
+import RetailProducts from "@/pages/retail-products";
 import Wishlist from "@/pages/wishlist";
 import Profile from "@/pages/profile";
 
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/occasions" component={OccasionSelection} />
       <Route path="/styles" component={StyleRecommendations} />
       <Route path="/products" component={Products} />
+      <Route path="/retail-products" component={RetailProducts} />
       <Route path="/wishlist" component={Wishlist} />
       <Route path="/profile" component={Profile} />
       <Route component={Onboarding} />

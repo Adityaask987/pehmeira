@@ -30,6 +30,11 @@ export default function Wishlist() {
     queryKey: ["/api/products"],
   });
 
+  const { data: retailProducts = [] } = useQuery<any[]>({
+    queryKey: ["/api/retail/products"],
+    queryFn: () => fetch("/api/retail/products").then(res => res.json()),
+  });
+
   const { data: allStyles = [] } = useQuery<Style[]>({
     queryKey: ["/api/styles"],
   });
@@ -58,7 +63,10 @@ export default function Wishlist() {
     removeFromWishlistMutation.mutate(style.id);
   };
 
-  const wishlistedProducts = allProducts.filter((p) =>
+  // Combine regular products and retail products
+  const allCombinedProducts = [...allProducts, ...retailProducts];
+  
+  const wishlistedProducts = allCombinedProducts.filter((p) =>
     wishlist.some((w) => w.itemType === "product" && w.itemId === p.id)
   );
 
