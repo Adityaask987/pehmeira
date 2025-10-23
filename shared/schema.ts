@@ -8,14 +8,35 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   gender: text("gender").notNull(),
   bodyType: text("body_type").notNull(),
+  // Profile preferences
+  shirtSize: text("shirt_size"),
+  pantSize: text("pant_size"),
+  shoeSize: text("shoe_size"),
+  favoriteBrands: text("favorite_brands").array(),
+  minBudget: integer("min_budget"),
+  maxBudget: integer("max_budget"),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
 });
 
+export const updateUserProfileSchema = insertUserSchema.partial().omit({ username: true }).refine(
+  (data) => {
+    if (data.minBudget !== undefined && data.maxBudget !== undefined) {
+      return data.minBudget <= data.maxBudget;
+    }
+    return true;
+  },
+  {
+    message: "Minimum budget must be less than or equal to maximum budget",
+    path: ["minBudget"],
+  }
+);
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
 
 export const wishlistItems = pgTable("wishlist_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

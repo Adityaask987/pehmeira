@@ -45,7 +45,12 @@ export default function StyleRecommendations() {
         .filter((item) => item.itemType === "style")
         .map((item) => item.itemId)
     );
-    setWishlistedStyles(styleIds);
+    setWishlistedStyles(prev => {
+      if (prev.size === styleIds.size && Array.from(prev).every(id => styleIds.has(id))) {
+        return prev;
+      }
+      return styleIds;
+    });
   }, [wishlist]);
 
   const addToWishlistMutation = useMutation({

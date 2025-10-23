@@ -8,6 +8,7 @@ import OccasionSelection from "@/pages/occasion-selection";
 import StyleRecommendations from "@/pages/style-recommendations";
 import Products from "@/pages/products";
 import Wishlist from "@/pages/wishlist";
+import Profile from "@/pages/profile";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/styles" component={StyleRecommendations} />
       <Route path="/products" component={Products} />
       <Route path="/wishlist" component={Wishlist} />
+      <Route path="/profile" component={Profile} />
       <Route component={Onboarding} />
     </Switch>
   );

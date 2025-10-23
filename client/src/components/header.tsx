@@ -1,4 +1,4 @@
-import { Heart, Menu, X } from "lucide-react";
+import { Heart, Menu, X, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -43,6 +43,16 @@ export function Header({ wishlistCount = 0 }: HeaderProps) {
           </nav>
 
           <div className="flex items-center gap-2">
+            <Link href="/profile">
+              <Button
+                variant="ghost"
+                size="icon"
+                data-testid="button-profile"
+              >
+                <User className="h-5 w-5" />
+              </Button>
+            </Link>
+
             <Link href="/wishlist">
               <Button
                 variant="ghost"
