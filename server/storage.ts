@@ -9,6 +9,8 @@ import {
 import { randomUUID } from "crypto";
 import { db, users as usersTable, wishlistItems as wishlistTable } from "./db";
 import { eq, and } from "drizzle-orm";
+import plusDateNight1 from "@assets/Plus_D1_1761306109712.jpeg";
+import plusDateNight2 from "@assets/Plus_D2_1761306109716.jpg";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -105,6 +107,28 @@ export class MemStorage implements IStorage {
         gender: "female",
         image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80",
         products: ["prod-16", "prod-17", "prod-18"],
+      },
+      {
+        id: "style-7",
+        name: "Sultry Date Night",
+        designer: "Valentina Cruz",
+        description: "Bold lace bodysuit with high-waisted leather skirt and thigh-high boots for a confident, show-stopping evening look.",
+        occasion: "date-night",
+        bodyType: "plus-size",
+        gender: "female",
+        image: plusDateNight1,
+        products: ["prod-4", "prod-17", "prod-8"],
+      },
+      {
+        id: "style-8",
+        name: "Glamorous Evening Out",
+        designer: "Valentina Cruz",
+        description: "Luxe lace top paired with sleek leather mini skirt and statement boots for an unforgettable date night ensemble.",
+        occasion: "date-night",
+        bodyType: "plus-size",
+        gender: "female",
+        image: plusDateNight2,
+        products: ["prod-4", "prod-17", "prod-8"],
       },
     ];
   }
@@ -473,6 +497,28 @@ export class DbStorage implements IStorage {
         gender: "female",
         image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80",
         products: ["prod-16", "prod-17", "prod-18"],
+      },
+      {
+        id: "style-7",
+        name: "Sultry Date Night",
+        designer: "Valentina Cruz",
+        description: "Bold lace bodysuit with high-waisted leather skirt and thigh-high boots for a confident, show-stopping evening look.",
+        occasion: "date-night",
+        bodyType: "plus-size",
+        gender: "female",
+        image: plusDateNight1,
+        products: ["prod-4", "prod-17", "prod-8"],
+      },
+      {
+        id: "style-8",
+        name: "Glamorous Evening Out",
+        designer: "Valentina Cruz",
+        description: "Luxe lace top paired with sleek leather mini skirt and statement boots for an unforgettable date night ensemble.",
+        occasion: "date-night",
+        bodyType: "plus-size",
+        gender: "female",
+        image: plusDateNight2,
+        products: ["prod-4", "prod-17", "prod-8"],
       },
     ];
   }
