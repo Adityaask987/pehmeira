@@ -8,6 +8,10 @@ A premium web-based fashion styling application that provides personalized outfi
 **Last Updated**: October 23, 2025
 
 ## Recent Changes
+- **October 24, 2025**: Added Plus Size Date Night style recommendations
+  - Added two new curated styles for Plus Size women's Date Night occasion
+  - Configured Express server to serve attached_assets folder as static files
+  - Both styles feature custom imagery and designer recommendations
 - **October 23, 2025**: Database migration and user profile management
   - Migrated from in-memory storage to PostgreSQL with Drizzle ORM
   - Implemented user profile management with size preferences, favorite brands, and budget settings
@@ -34,7 +38,8 @@ A premium web-based fashion styling application that provides personalized outfi
 
 **Backend**:
 - Express.js
-- In-memory storage (MemStorage)
+- PostgreSQL with Drizzle ORM (DbStorage)
+- Static asset serving for user-uploaded images
 - TypeScript
 
 **Design System**:
