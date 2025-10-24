@@ -9,8 +9,6 @@ import {
 import { randomUUID } from "crypto";
 import { db, users as usersTable, wishlistItems as wishlistTable } from "./db";
 import { eq, and } from "drizzle-orm";
-import plusDateNight1 from "@assets/Plus_D1_1761306109712.jpeg";
-import plusDateNight2 from "@assets/Plus_D2_1761306109716.jpg";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -116,7 +114,7 @@ export class MemStorage implements IStorage {
         occasion: "date-night",
         bodyType: "plus-size",
         gender: "female",
-        image: plusDateNight1,
+        image: "/attached_assets/Plus_D1_1761306109712.jpeg",
         products: ["prod-4", "prod-17", "prod-8"],
       },
       {
@@ -127,7 +125,7 @@ export class MemStorage implements IStorage {
         occasion: "date-night",
         bodyType: "plus-size",
         gender: "female",
-        image: plusDateNight2,
+        image: "/attached_assets/Plus_D2_1761306109716.jpg",
         products: ["prod-4", "prod-17", "prod-8"],
       },
     ];
@@ -506,7 +504,7 @@ export class DbStorage implements IStorage {
         occasion: "date-night",
         bodyType: "plus-size",
         gender: "female",
-        image: plusDateNight1,
+        image: "/attached_assets/Plus_D1_1761306109712.jpeg",
         products: ["prod-4", "prod-17", "prod-8"],
       },
       {
@@ -517,7 +515,7 @@ export class DbStorage implements IStorage {
         occasion: "date-night",
         bodyType: "plus-size",
         gender: "female",
-        image: plusDateNight2,
+        image: "/attached_assets/Plus_D2_1761306109716.jpg",
         products: ["prod-4", "prod-17", "prod-8"],
       },
     ];
