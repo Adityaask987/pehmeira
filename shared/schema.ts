@@ -23,7 +23,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
 
 export const updateUserProfileSchema = insertUserSchema.partial().omit({ username: true }).refine(
   (data) => {
-    if (data.minBudget !== undefined && data.maxBudget !== undefined) {
+    if (data.minBudget !== undefined && data.minBudget !== null && 
+        data.maxBudget !== undefined && data.maxBudget !== null) {
       return data.minBudget <= data.maxBudget;
     }
     return true;
