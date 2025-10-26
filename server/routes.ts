@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertWishlistItemSchema, updateUserProfileSchema } from "@shared/schema";
+import { insertUserSchema, insertWishlistItemSchema, updateUserProfileSchema, type ProductSearchResponse, type SearchedProduct } from "@shared/schema";
 import { fetchRetailProducts, fetchProductById, findSimilarProducts } from "./retail-api";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -147,6 +147,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.removeFromWishlist(req.params.id);
       res.json({ success: true });
     } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/search-products", async (req, res) => {
+    try {
+      const { styleId } = req.body;
+      
+      if (!styleId) {
+        return res.status(400).json({ message: "styleId is required" });
+      }
+
+      const apiKey = process.env.SERPAPI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ message: "SERPAPI_API_KEY not configured" });
+      }
+
+      const styles = await storage.getStyles();
+      const style = styles.find(s => s.id === styleId);
+      
+      if (!style) {
+        return res.status(404).json({ message: "Style not found" });
+      }
+
+      const imageUrl = style.image.startsWith('http') 
+        ? style.image 
+        : `${req.protocol}://${req.get('host')}${style.image}`;
+
+      const searchTerms = {
+        upper: `${style.gender} ${style.bodyType} ${style.occasion} top blouse shirt`,
+        lower: `${style.gender} ${style.bodyType} ${style.occasion} pants skirt bottoms`,
+        accessories: `${style.gender} ${style.bodyType} ${style.occasion} accessories jewelry bag`,
+        footwear: `${style.gender} ${style.bodyType} ${style.occasion} shoes heels boots`
+      };
+
+      const categories = ['upper', 'lower', 'accessories', 'footwear'] as const;
+      const results: ProductSearchResponse = {
+        upper: [],
+        lower: [],
+        accessories: [],
+        footwear: []
+      };
+
+      for (const category of categories) {
+        try {
+          const response = await fetch(
+            `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(searchTerms[category])}&api_key=${apiKey}&num=10`
+          );
+          
+          if (!response.ok) {
+            console.error(`Failed to fetch ${category} products:`, response.statusText);
+            continue;
+          }
+
+          const data = await response.json();
+          const shoppingResults = data.shopping_results || [];
+          
+          results[category] = shoppingResults.slice(0, 10).map((item: any): SearchedProduct => ({
+            title: item.title || 'Untitled Product',
+            price: item.price || 'Price not available',
+            source: item.source || 'Unknown',
+            link: item.link || '#',
+            thumbnail: item.thumbnail || '',
+            category: category,
+            rating: item.rating,
+            reviews: item.reviews
+          }));
+        } catch (error: any) {
+          console.error(`Error fetching ${category} products:`, error.message);
+        }
+      }
+
+      res.json(results);
+    } catch (error: any) {
+      console.error('Product search error:', error);
       res.status(500).json({ message: error.message });
     }
   });

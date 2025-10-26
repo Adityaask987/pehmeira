@@ -91,3 +91,25 @@ export type Product = {
 };
 
 export type Category = "shirts" | "pants" | "shoes" | "accessories" | "all";
+
+export type SearchedProduct = {
+  title: string;
+  price: string;
+  source: string;
+  link: string;
+  thumbnail: string;
+  category: "upper" | "lower" | "accessories" | "footwear";
+  rating?: number;
+  reviews?: number;
+};
+
+export type ProductSearchRequest = {
+  styleId: string;
+};
+
+export type ProductSearchResponse = {
+  upper: SearchedProduct[];
+  lower: SearchedProduct[];
+  accessories: SearchedProduct[];
+  footwear: SearchedProduct[];
+};

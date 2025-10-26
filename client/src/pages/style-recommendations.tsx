@@ -105,8 +105,7 @@ export default function StyleRecommendations() {
   };
 
   const handleShopLook = (style: Style) => {
-    localStorage.setItem("selectedStyle", style.id);
-    setLocation("/products");
+    setLocation(`/product-results/${style.id}`);
   };
 
   if (isLoading) {
