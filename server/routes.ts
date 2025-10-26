@@ -175,11 +175,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? style.image 
         : `${req.protocol}://${req.get('host')}${style.image}`;
 
-      const searchTerms = {
-        upper: `${style.gender} ${style.bodyType} ${style.occasion} top blouse shirt`,
-        lower: `${style.gender} ${style.bodyType} ${style.occasion} pants skirt bottoms`,
-        accessories: `${style.gender} ${style.bodyType} ${style.occasion} accessories jewelry bag`,
-        footwear: `${style.gender} ${style.bodyType} ${style.occasion} shoes heels boots`
+      const searchQueries = {
+        upper: `${style.gender} top blouse shirt`,
+        lower: `${style.gender} pants skirt bottoms`,
+        accessories: `${style.gender} accessories jewelry bag`,
+        footwear: `${style.gender} shoes heels boots`
       };
 
       const categories = ['upper', 'lower', 'accessories', 'footwear'] as const;
@@ -190,34 +190,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         footwear: []
       };
 
-      for (const category of categories) {
+      const fetchCategoryProducts = async (category: typeof categories[number]) => {
         try {
-          const response = await fetch(
-            `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(searchTerms[category])}&api_key=${apiKey}&num=10`
+          const lensResponse = await fetch(
+            `https://serpapi.com/search.json?engine=google_lens&url=${encodeURIComponent(imageUrl)}&q=${encodeURIComponent(searchQueries[category])}&api_key=${apiKey}`
           );
           
-          if (!response.ok) {
-            console.error(`Failed to fetch ${category} products:`, response.statusText);
-            continue;
+          if (!lensResponse.ok) {
+            console.error(`Failed to fetch ${category} products:`, lensResponse.statusText);
+            return { category, products: [] };
           }
 
-          const data = await response.json();
-          const shoppingResults = data.shopping_results || [];
+          const lensData = await lensResponse.json();
+          const visualMatches = lensData.visual_matches || [];
           
-          results[category] = shoppingResults.slice(0, 10).map((item: any): SearchedProduct => ({
+          const products = visualMatches.slice(0, 10).map((item: any): SearchedProduct => ({
             title: item.title || 'Untitled Product',
-            price: item.price || 'Price not available',
+            price: item.price?.value || item.price || 'Price not available',
             source: item.source || 'Unknown',
             link: item.link || '#',
-            thumbnail: item.thumbnail || '',
+            thumbnail: item.thumbnail || item.image || '',
             category: category,
             rating: item.rating,
             reviews: item.reviews
           }));
+
+          return { category, products };
         } catch (error: any) {
           console.error(`Error fetching ${category} products:`, error.message);
+          return { category, products: [] };
         }
-      }
+      };
+
+      const categoryResults = await Promise.all(
+        categories.map(category => fetchCategoryProducts(category))
+      );
+
+      categoryResults.forEach(({ category, products }) => {
+        results[category] = products;
+      });
 
       res.json(results);
     } catch (error: any) {
