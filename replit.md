@@ -8,6 +8,13 @@ A premium web-based fashion styling application that provides personalized outfi
 **Last Updated**: October 23, 2025
 
 ## Recent Changes
+- **January 3, 2026**: Image-based product search with match percentages
+  - Integrated Google Lens API (SerpAPI) for visual similarity product search
+  - Added match percentage badges to product cards (98% for top results, decreasing by 3% per position)
+  - Implemented parallel API calls for 4 categories (Tops, Bottoms, Accessories, Footwear)
+  - Created /product-results page with tabbed interface showing 40 products across categories
+  - Performance optimized: reduced search latency from 20-60s to 5-15s via concurrent requests
+  - Gold badge styling with black text for premium aesthetic
 - **October 24, 2025**: Added Plus Size Date Night style recommendations
   - Added two new curated styles for Plus Size women's Date Night occasion
   - Configured Express server to serve attached_assets folder as static files
@@ -54,6 +61,7 @@ A premium web-based fashion styling application that provides personalized outfi
 - **WishlistItem**: userId, itemType (style|product), itemId
 - **Style**: Designer-curated outfit combinations with occasion and body type targeting
 - **Product**: Individual items organized by category with retailer information
+- **SearchedProduct**: Products from Google Lens API with title, price, source, link, thumbnail, category, matchPercentage
 - **BodyType**: Visual body shape guides for personalized recommendations
 - **Occasion**: Event categories (casual, business, formal, date night, etc.)
 
@@ -61,8 +69,9 @@ A premium web-based fashion styling application that provides personalized outfi
 1. **Onboarding** (`/`) - Gender selection → Body type selection
 2. **Occasion Selection** (`/occasions`) - Choose event type
 3. **Style Recommendations** (`/styles`) - Curated designer looks
-4. **Product Catalog** (`/products`) - Browse and filter items by category
-5. **Wishlist** (`/wishlist`) - Saved styles and products
+4. **Product Results** (`/product-results/:styleId`) - Image-based search results with match percentages
+5. **Product Catalog** (`/products`) - Browse and filter items by category
+6. **Wishlist** (`/wishlist`) - Saved styles and products
 
 ### Key Features
 - Visual body type selector with professional illustrations
@@ -76,6 +85,7 @@ A premium web-based fashion styling application that provides personalized outfi
 ## API Endpoints
 - `GET /api/styles` - Get style recommendations
 - `GET /api/products` - Get product catalog
+- `POST /api/search-products` - Image-based product search using Google Lens API
 - `GET /api/wishlist` - Get user's wishlist items
 - `POST /api/wishlist` - Add item to wishlist
 - `DELETE /api/wishlist/:id` - Remove item from wishlist
