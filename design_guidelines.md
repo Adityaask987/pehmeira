@@ -9,19 +9,21 @@
 
 ### A. Color Palette
 
-**Light Mode (Primary)**
-- Primary: 0 0% 0% (Black) - Headers, primary text, CTA buttons
-- Secondary: 0 0% 100% (White) - Backgrounds, cards
-- Accent: 51 100% 50% (Gold #FFD700) - Highlights, premium badges, active states
-- Premium Accent: 48 46% 50% (Darker Gold #C9B037) - Subtle luxury touches, borders
-- Background: 0 0% 97% (Light Grey #F8F8F8) - Page background
-- Text: 0 0% 20% (Dark Grey #333333) - Body text, descriptions
-- Divider: 0 0% 90% - Subtle separators
+**Black & Gold Luxury Theme**
+- Background: 0 0% 0% (Pure Black) - Main page background
+- Card/Surface: 0 0% 6% (Dark Grey) - Cards, elevated elements
+- Primary: 51 100% 50% (Gold #FFD700) - CTA buttons, accents, highlights
+- Primary Foreground: 0 0% 0% (Black) - Text on gold buttons
+- Foreground: 0 0% 100% (White) - Primary text, headings
+- Muted Foreground: 0 0% 65% (Light Grey) - Secondary text, descriptions
+- Border: 51 100% 30% (Darker Gold) - Card borders, dividers
+- Secondary: 0 0% 15% (Very Dark Grey) - Secondary buttons, subtle backgrounds
 
 **Interactive States**
-- Hover on gold elements: Darker gold (#C9B037)
-- Hover on black buttons: 0 0% 15%
-- Selected/Active: Gold accent with subtle shadow
+- Hover on gold elements: Subtle gold glow effect (elevated with gold tint)
+- Hover on cards: Gold border emphasis
+- Selected/Active: Gold accent with elevated background
+- Focus ring: Gold (#FFD700)
 
 ### B. Typography
 
@@ -62,33 +64,34 @@
 - Mobile: Hamburger menu with smooth slide-in drawer
 
 **Product Cards**
-- Clean white background with subtle shadow on hover
+- Dark grey card background (0 0% 6%) with gold shadow on hover
 - High-quality product image (aspect-ratio-3/4)
-- Thin gold border on hover
-- Product name (Montserrat, medium)
-- Price (bold, prominent)
-- Retailer name (small, grey)
+- Gold border on hover
+- Product name (Montserrat, medium, white text)
+- Price (bold, prominent, white text)
+- Retailer name (small, muted grey)
 - Match percentage badge (gold background, black text) when applicable
 - Quick-add to wishlist heart icon (top-right, gold when active)
 
 **Style Recommendation Cards**
 - Larger format than product cards
-- Complete outfit image
+- Complete outfit image with gold border
 - Designer name with gold accent
-- Occasion tag
-- "Shop This Look" CTA button (black background, gold on hover)
+- Occasion tag (gold background, black text)
+- "Shop This Look" CTA button (gold background, black text, elevated on hover)
 - Individual product breakdown on expansion
 
 **Body Type Selector**
-- Visual illustration cards with professional fashion sketches
-- Gold border on selection
-- Clear label beneath (Montserrat)
-- Subtle hover effect (lift + shadow)
+- Dark grey card with professional fashion sketches
+- Gold border and glow on selection
+- Clear label beneath (Montserrat, white text)
+- Gold tint hover effect with subtle elevation
 
 **Buttons**
-- Primary: Black background, white text, gold hover
-- Secondary: White background, black border, black text
-- Outline on images: Backdrop blur, white border, white text
+- Primary: Gold background (#FFD700), black text, elevated on hover
+- Secondary: Dark grey background, white text, gold border
+- Ghost: Transparent, white text, gold on hover
+- Outline on images: Backdrop blur, gold border, white text
 - Sizes: py-3 px-8 (large), py-2 px-6 (medium)
 - Border radius: rounded-md
 
@@ -106,12 +109,19 @@
 ### E. Animations
 
 Use sparingly for premium feel:
-- Card hover: Subtle lift (transform + shadow transition)
+- Card hover: Subtle lift with gold shadow glow
 - Image zoom: Smooth scale on product hover
 - Page transitions: Elegant fade
-- Wishlist heart: Subtle pulse on add
+- Wishlist heart: Subtle pulse with gold glow on add
 - Filter drawer: Smooth slide
+- Gold accent elements: Subtle shimmer effect on hover
 - NO continuous/distracting animations
+
+### F. Visual Effects
+- Gold glow shadows on interactive elements
+- Backdrop blur on overlays and modals
+- Subtle gradient overlays on hero images (black to transparent)
+- Gold accent lines and separators throughout the interface
 
 ## Images
 
