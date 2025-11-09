@@ -8,6 +8,15 @@ A premium web-based fashion styling application that provides personalized outfi
 **Last Updated**: October 23, 2025
 
 ## Recent Changes
+- **January 9, 2026**: Firebase Authentication with Google OAuth
+  - Integrated Firebase Authentication for secure user login
+  - Implemented Google sign-in with popup flow
+  - Created AuthContext for global user state management
+  - Updated Header with user avatar dropdown menu (profile, wishlist, sign out)
+  - Added /auth login page with Pehmeira branding
+  - Backend routes for user sync and session management using Firebase Admin SDK
+  - User database schema updated to support Firebase UID, email, name, profilePicture
+  - Auth middleware for protecting API endpoints with Firebase token verification
 - **January 3, 2026**: Image-based product search with match percentages
   - Integrated Google Lens API (SerpAPI) for visual similarity product search
   - Added match percentage badges to product cards (98% for top results, decreasing by 3% per position)

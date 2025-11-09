@@ -1,8 +1,19 @@
-import { Heart, Menu, X, User } from "lucide-react";
+import { Heart, Menu, X, User, LogOut } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthContext";
+import { signOut } from "@/lib/firebase";
 import pehmeiraLogo from "@assets/VCXCVCXCV-removebg-preview (1)_1762695915269.png";
 
 interface HeaderProps {
@@ -10,8 +21,18 @@ interface HeaderProps {
 }
 
 export function Header({ wishlistCount = 0 }: HeaderProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, firebaseUser, loading } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setLocation("/");
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
+  };
 
   const navItems = [
     { path: "/occasions", label: "DISCOVER" },
@@ -48,15 +69,65 @@ export function Header({ wishlistCount = 0 }: HeaderProps) {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link href="/profile">
-              <Button
-                variant="ghost"
-                size="icon"
-                data-testid="button-profile"
-              >
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
+            {user && firebaseUser ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="relative h-9 w-9 rounded-full"
+                    data-testid="button-user-menu"
+                  >
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={user.profilePicture || undefined} alt={user.name || "User"} />
+                      <AvatarFallback className="bg-accent text-accent-foreground">
+                        {user.name?.[0]?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel data-testid="text-user-name">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium">{user.name || "User"}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="w-full cursor-pointer" data-testid="link-profile-menu">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/wishlist" className="w-full cursor-pointer" data-testid="link-wishlist-menu">
+                      <Heart className="mr-2 h-4 w-4" />
+                      Wishlist
+                      {wishlistCount > 0 && (
+                        <Badge className="ml-auto" variant="secondary" data-testid="badge-wishlist-count-menu">
+                          {wishlistCount}
+                        </Badge>
+                      )}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} data-testid="button-sign-out">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                {!loading && (
+                  <Link href="/auth">
+                    <Button variant="default" size="sm" data-testid="button-sign-in">
+                      Sign In
+                    </Button>
+                  </Link>
+                )}
+              </>
+            )}
 
             <Link href="/wishlist">
               <Button

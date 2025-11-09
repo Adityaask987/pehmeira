@@ -1,11 +1,90 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertWishlistItemSchema, updateUserProfileSchema, type ProductSearchResponse, type SearchedProduct } from "@shared/schema";
 import { fetchRetailProducts, fetchProductById, findSimilarProducts } from "./retail-api";
+import admin from "firebase-admin";
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  });
+}
+
+async function verifyFirebaseToken(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const token = authHeader.split("Bearer ")[1];
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    (req as any).firebaseUser = decodedToken;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const token = authHeader.split("Bearer ")[1];
+      const decodedToken = await admin.auth().verifyIdToken(token);
+      
+      const { uid, email, name, profilePicture } = req.body;
+      
+      let user = await storage.getUserByGoogleId(uid);
+      
+      if (!user) {
+        user = await storage.createUser({
+          googleId: uid,
+          email: email || null,
+          name: name || null,
+          profilePicture: profilePicture || null,
+          authMethod: "google",
+          username: null,
+          phone: null,
+          gender: null,
+          bodyType: null,
+          shirtSize: null,
+          pantSize: null,
+          shoeSize: null,
+          favoriteBrands: null,
+          minBudget: null,
+          maxBudget: null,
+        });
+      }
+      
+      res.json(user);
+    } catch (error: any) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/auth/me", verifyFirebaseToken, async (req, res) => {
+    try {
+      const firebaseUser = (req as any).firebaseUser;
+      const user = await storage.getUserByGoogleId(firebaseUser.uid);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(user);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/users", async (req, res) => {
     try {
       const validatedData = insertUserSchema.parse(req.body);
