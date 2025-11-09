@@ -5,16 +5,31 @@ import {
   type InsertWishlistItem,
   type Style,
   type Product,
+  type OtpVerification,
+  type InsertOtpVerification,
+  type Session,
+  type InsertSession,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { db, users as usersTable, wishlistItems as wishlistTable } from "./db";
-import { eq, and } from "drizzle-orm";
+import { db, users as usersTable, wishlistItems as wishlistTable, otpVerifications as otpTable, sessions as sessionsTable } from "./db";
+import { eq, and, gt } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByPhone(phone: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User>;
+  
+  createOtpVerification(otp: InsertOtpVerification): Promise<OtpVerification>;
+  getValidOtp(identifier: string, code: string): Promise<OtpVerification | undefined>;
+  deleteOtp(id: string): Promise<void>;
+  
+  createSession(session: InsertSession): Promise<Session>;
+  getSessionByToken(token: string): Promise<Session | undefined>;
+  deleteSession(token: string): Promise<void>;
   
   getStyles(gender?: string, bodyType?: string, occasion?: string): Promise<Style[]>;
   getProducts(category?: string): Promise<Product[]>;
@@ -28,12 +43,16 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private wishlist: Map<string, WishlistItem>;
+  private otpVerifications: Map<string, OtpVerification>;
+  private sessions: Map<string, Session>;
   private styles: Style[];
   private products: Product[];
 
   constructor() {
     this.users = new Map();
     this.wishlist = new Map();
+    this.otpVerifications = new Map();
+    this.sessions = new Map();
     this.styles = this.initializeStyles();
     this.products = this.initializeProducts();
   }
@@ -414,6 +433,76 @@ export class MemStorage implements IStorage {
         item.itemType === itemType &&
         item.itemId === itemId
     );
+  }
+
+  async getUserByPhone(phone: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.phone === phone
+    );
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.email === email
+    );
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.googleId === googleId
+    );
+  }
+
+  async createOtpVerification(insertOtp: InsertOtpVerification): Promise<OtpVerification> {
+    const id = randomUUID();
+    const otp: OtpVerification = { 
+      ...insertOtp, 
+      id,
+      createdAt: new Date()
+    };
+    this.otpVerifications.set(id, otp);
+    return otp;
+  }
+
+  async getValidOtp(identifier: string, code: string): Promise<OtpVerification | undefined> {
+    const now = new Date();
+    return Array.from(this.otpVerifications.values()).find(
+      (otp) =>
+        otp.identifier === identifier &&
+        otp.code === code &&
+        otp.expiresAt > now
+    );
+  }
+
+  async deleteOtp(id: string): Promise<void> {
+    this.otpVerifications.delete(id);
+  }
+
+  async createSession(insertSession: InsertSession): Promise<Session> {
+    const id = randomUUID();
+    const session: Session = { 
+      ...insertSession, 
+      id,
+      createdAt: new Date()
+    };
+    this.sessions.set(id, session);
+    return session;
+  }
+
+  async getSessionByToken(token: string): Promise<Session | undefined> {
+    const now = new Date();
+    return Array.from(this.sessions.values()).find(
+      (session) => session.token === token && session.expiresAt > now
+    );
+  }
+
+  async deleteSession(token: string): Promise<void> {
+    const sessionToDelete = Array.from(this.sessions.values()).find(
+      (session) => session.token === token
+    );
+    if (sessionToDelete) {
+      this.sessions.delete(sessionToDelete.id);
+    }
   }
 }
 
@@ -798,6 +887,66 @@ export class DbStorage implements IStorage {
         )
       );
     return result[0];
+  }
+
+  async getUserByPhone(phone: string): Promise<User | undefined> {
+    const result = await db.select().from(usersTable).where(eq(usersTable.phone, phone));
+    return result[0];
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await db.select().from(usersTable).where(eq(usersTable.email, email));
+    return result[0];
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    const result = await db.select().from(usersTable).where(eq(usersTable.googleId, googleId));
+    return result[0];
+  }
+
+  async createOtpVerification(otp: InsertOtpVerification): Promise<OtpVerification> {
+    const result = await db.insert(otpTable).values(otp).returning();
+    return result[0];
+  }
+
+  async getValidOtp(identifier: string, code: string): Promise<OtpVerification | undefined> {
+    const result = await db
+      .select()
+      .from(otpTable)
+      .where(
+        and(
+          eq(otpTable.identifier, identifier),
+          eq(otpTable.code, code),
+          gt(otpTable.expiresAt, new Date())
+        )
+      );
+    return result[0];
+  }
+
+  async deleteOtp(id: string): Promise<void> {
+    await db.delete(otpTable).where(eq(otpTable.id, id));
+  }
+
+  async createSession(session: InsertSession): Promise<Session> {
+    const result = await db.insert(sessionsTable).values(session).returning();
+    return result[0];
+  }
+
+  async getSessionByToken(token: string): Promise<Session | undefined> {
+    const result = await db
+      .select()
+      .from(sessionsTable)
+      .where(
+        and(
+          eq(sessionsTable.token, token),
+          gt(sessionsTable.expiresAt, new Date())
+        )
+      );
+    return result[0];
+  }
+
+  async deleteSession(token: string): Promise<void> {
+    await db.delete(sessionsTable).where(eq(sessionsTable.token, token));
   }
 }
 
