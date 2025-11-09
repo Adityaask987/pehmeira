@@ -189,6 +189,13 @@ function ProductResultCard({ product, index }: { product: SearchedProduct, index
             <ShoppingBag className="h-12 w-12 text-muted-foreground" />
           </div>
         )}
+        
+        <div 
+          className="absolute top-2 right-2 bg-accent text-black px-2 py-1 rounded-full text-xs font-semibold shadow-lg"
+          data-testid={`badge-match-${product.category}-${index}`}
+        >
+          {product.matchPercentage}% Match
+        </div>
       </div>
       
       <CardContent className="p-4 space-y-3">
