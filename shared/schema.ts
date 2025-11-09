@@ -102,6 +102,7 @@ export type SearchedProduct = {
   category: "upper" | "lower" | "accessories" | "footwear";
   rating?: number;
   reviews?: number;
+  matchPercentage: number;
 };
 
 export type ProductSearchRequest = {
