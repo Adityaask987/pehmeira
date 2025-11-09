@@ -204,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const lensData = await lensResponse.json();
           const visualMatches = lensData.visual_matches || [];
           
-          const products = visualMatches.slice(0, 10).map((item: any): SearchedProduct => ({
+          const products = visualMatches.slice(0, 10).map((item: any, index: number): SearchedProduct => ({
             title: item.title || 'Untitled Product',
             price: item.price?.value || item.price || 'Price not available',
             source: item.source || 'Unknown',
@@ -212,7 +212,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             thumbnail: item.thumbnail || item.image || '',
             category: category,
             rating: item.rating,
-            reviews: item.reviews
+            reviews: item.reviews,
+            matchPercentage: 98 - (index * 3)
           }));
 
           return { category, products };
