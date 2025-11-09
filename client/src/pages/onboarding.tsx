@@ -91,7 +91,7 @@ export default function Onboarding() {
           <div className="space-y-12">
             <div className="text-center space-y-4">
               <h1 className="font-serif text-4xl md:text-6xl font-bold" data-testid="text-welcome">
-                Welcome to StyleCurate
+                Welcome to Pehmeira
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
                 Let's personalize your styling experience. First, select your gender preference.

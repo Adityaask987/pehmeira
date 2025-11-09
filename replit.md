@@ -1,4 +1,4 @@
-# StyleCurate - Luxury Fashion Styling Application
+# Pehmeira - Luxury Fashion Styling Application
 
 ## Overview
 A premium web-based fashion styling application that provides personalized outfit recommendations based on body type and occasion. Features curated designer styles, product discovery across multiple retailers, and wishlist functionality with a sophisticated luxury interface.

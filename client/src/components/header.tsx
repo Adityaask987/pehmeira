@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import pehmeiraLogo from "@assets/VCXCVCXCV-removebg-preview (1)_1762695915269.png";
 
 interface HeaderProps {
   wishlistCount?: number;
@@ -24,9 +25,12 @@ export function Header({ wishlistCount = 0 }: HeaderProps) {
       <div className="mx-auto max-w-7xl px-4 md:px-6">
         <div className="flex h-16 items-center justify-between gap-4">
           <Link href="/" data-testid="link-home">
-            <h1 className="font-serif text-2xl font-bold tracking-tight cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md">
-              StyleCurate
-            </h1>
+            <img 
+              src={pehmeiraLogo} 
+              alt="Pehmeira" 
+              className="h-10 md:h-12 cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md"
+              data-testid="img-logo"
+            />
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
