@@ -10,6 +10,9 @@ app.use(express.urlencoded({ extended: false }));
 // Serve attached assets as static files
 app.use("/attached_assets", express.static(path.resolve(import.meta.dirname, "..", "attached_assets")));
 
+// Serve uploaded files
+app.use("/uploads", express.static(path.resolve(import.meta.dirname, "..", "uploads")));
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

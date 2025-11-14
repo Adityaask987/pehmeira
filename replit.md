@@ -8,6 +8,16 @@ A premium web-based fashion styling application that provides personalized outfi
 **Last Updated**: October 23, 2025
 
 ## Recent Changes
+- **January 14, 2026**: Admin Panel for Style Management
+  - Created comprehensive admin panel at /admin with full CRUD operations
+  - Added isAdmin field to users table for role-based access control
+  - Implemented file upload system with multer (5MB limit, jpeg/jpg/png/webp)
+  - Built admin API endpoints: GET/POST/PATCH/DELETE /api/admin/styles
+  - Created admin middleware (requireAdmin) with Firebase token verification
+  - Designed luxury black/gold admin UI matching application aesthetic
+  - Database-backed styles table replaces hardcoded arrays
+  - Image uploads stored in uploads/styles directory
+  - Admin users can add, edit, delete styles with image upload capability
 - **January 9, 2026**: Firebase Authentication with Google OAuth
   - Integrated Firebase Authentication for secure user login
   - Implemented Google sign-in with popup flow
@@ -81,6 +91,7 @@ A premium web-based fashion styling application that provides personalized outfi
 4. **Product Results** (`/product-results/:styleId`) - Image-based search results with match percentages
 5. **Product Catalog** (`/products`) - Browse and filter items by category
 6. **Wishlist** (`/wishlist`) - Saved styles and products
+7. **Admin Panel** (`/admin`) - Style management dashboard (admin-only)
 
 ### Key Features
 - Visual body type selector with professional illustrations
@@ -92,13 +103,22 @@ A premium web-based fashion styling application that provides personalized outfi
 - Premium hover interactions and transitions
 
 ## API Endpoints
-- `GET /api/styles` - Get style recommendations
+
+### Public Endpoints
+- `GET /api/styles` - Get style recommendations (with optional filters: gender, bodyType, occasion)
 - `GET /api/products` - Get product catalog
 - `POST /api/search-products` - Image-based product search using Google Lens API
 - `GET /api/wishlist` - Get user's wishlist items
 - `POST /api/wishlist` - Add item to wishlist
 - `DELETE /api/wishlist/:id` - Remove item from wishlist
 - `POST /api/users` - Create user profile
+
+### Admin Endpoints (Protected)
+- `GET /api/admin/styles` - List all styles (admin only)
+- `POST /api/admin/styles` - Create new style (admin only)
+- `PATCH /api/admin/styles/:id` - Update existing style (admin only)
+- `DELETE /api/admin/styles/:id` - Delete style (admin only)
+- `POST /api/admin/upload` - Upload style image (admin only)
 
 ## User Preferences
 - **Design Priority**: Visual excellence is paramount - luxury aesthetic with gold accents
@@ -114,11 +134,27 @@ A premium web-based fashion styling application that provides personalized outfi
 - Smooth transitions and hover effects
 - High-quality imagery with proper aspect ratios
 
+## Admin Workflow
+**How to Manage Styles:**
+1. Sign in with Google using an admin account (set `isAdmin = true` in database)
+2. Navigate to `/admin` to access the admin panel
+3. View all existing styles in the grid layout
+4. **Add New Style**: Click "Add Style" button → Fill form → Upload image → Submit
+5. **Edit Style**: Click pencil icon → Modify fields → Update image if needed → Submit
+6. **Delete Style**: Click trash icon → Confirm deletion
+7. Images are stored in `uploads/styles/` with UUID filenames
+
+**Admin Access Setup:**
+```sql
+-- Make a user an admin
+UPDATE users SET "isAdmin" = true WHERE email = 'admin@example.com';
+```
+
 ## Next Steps (Post-MVP)
 1. Integrate real retail APIs (ShopStyle, Amazon, Nordstrom)
 2. Implement AI-powered visual similarity matching
-3. Add user profile management with size preferences
-4. Create personalized recommendation engine
-5. Implement price tracking and sale notifications
-6. Add social sharing features
-7. Build style inspiration feed
+3. Create personalized recommendation engine
+4. Implement price tracking and sale notifications
+5. Add social sharing features
+6. Build style inspiration feed
+7. Add analytics dashboard for admin panel

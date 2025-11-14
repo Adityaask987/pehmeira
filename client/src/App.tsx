@@ -13,12 +13,14 @@ import ProductResults from "@/pages/product-results";
 import Wishlist from "@/pages/wishlist";
 import Profile from "@/pages/profile";
 import Auth from "@/pages/auth";
+import AdminPage from "@/pages/admin";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Onboarding} />
       <Route path="/auth" component={Auth} />
+      <Route path="/admin" component={AdminPage} />
       <Route path="/occasions" component={OccasionSelection} />
       <Route path="/styles" component={StyleRecommendations} />
       <Route path="/products" component={Products} />

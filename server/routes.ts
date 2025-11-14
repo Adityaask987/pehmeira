@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertUserSchema, insertWishlistItemSchema, updateUserProfileSchema, type ProductSearchResponse, type SearchedProduct } from "@shared/schema";
 import { fetchRetailProducts, fetchProductById, findSimilarProducts } from "./retail-api";
 import admin from "firebase-admin";
+import { registerAdminRoutes } from "./admin";
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -28,6 +29,8 @@ async function verifyFirebaseToken(req: Request, res: Response, next: NextFuncti
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Register admin routes
+  registerAdminRoutes(app);
   
   app.post("/api/auth/login", async (req, res) => {
     try {
