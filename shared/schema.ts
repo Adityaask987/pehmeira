@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -13,6 +13,8 @@ export const users = pgTable("users", {
   authMethod: text("auth_method").notNull(),
   name: text("name"),
   profilePicture: text("profile_picture"),
+  // Admin field
+  isAdmin: boolean("is_admin").default(false).notNull(),
   // Onboarding preferences
   gender: text("gender"),
   bodyType: text("body_type"),
@@ -141,6 +143,27 @@ export const insertSessionSchema = createInsertSchema(sessions).omit({
 export type InsertSession = z.infer<typeof insertSessionSchema>;
 export type Session = typeof sessions.$inferSelect;
 
+export const styles = pgTable("styles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  designer: text("designer").notNull(),
+  description: text("description").notNull(),
+  occasion: text("occasion").notNull(),
+  bodyType: text("body_type").notNull(),
+  gender: text("gender").notNull(),
+  image: text("image").notNull(),
+  products: text("products").array().default(sql`ARRAY[]::text[]`).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertStyleSchema = createInsertSchema(styles).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertStyle = z.infer<typeof insertStyleSchema>;
+export type Style = typeof styles.$inferSelect;
+
 export type BodyType = {
   id: string;
   name: string;
@@ -154,18 +177,6 @@ export type Occasion = {
   name: string;
   description: string;
   image: string;
-};
-
-export type Style = {
-  id: string;
-  name: string;
-  designer: string;
-  description: string;
-  occasion: string;
-  bodyType: string;
-  gender: string;
-  image: string;
-  products: string[];
 };
 
 export type Product = {
