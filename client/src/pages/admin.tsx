@@ -29,7 +29,18 @@ export default function AdminPage() {
 
   // Centralized admin request handler
   const adminFetch = async (url: string, options?: RequestInit): Promise<Response> => {
-    const token = await firebaseUser?.getIdToken();
+    let token: string;
+    
+    try {
+      token = await firebaseUser?.getIdToken() || '';
+    } catch (error) {
+      // Token acquisition failed - treat as unauthorized
+      setIsUnauthorized(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin"] });
+      setLocation("/");
+      throw new Error("Failed to acquire authentication token");
+    }
+
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -147,7 +158,17 @@ export default function AdminPage() {
       const formData = new FormData();
       formData.append("image", file);
 
-      const token = await firebaseUser?.getIdToken();
+      let token: string;
+      try {
+        token = await firebaseUser?.getIdToken() || '';
+      } catch (error) {
+        // Token acquisition failed - treat as unauthorized
+        setIsUnauthorized(true);
+        queryClient.invalidateQueries({ queryKey: ["/api/admin"] });
+        setLocation("/");
+        throw new Error("Failed to acquire authentication token");
+      }
+
       const response = await fetch("/api/admin/upload", {
         method: "POST",
         headers: {
