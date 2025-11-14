@@ -5,20 +5,11 @@ import { randomUUID } from "crypto";
 import { storage } from "./storage";
 import { insertStyleSchema, updateStyleSchema } from "@shared/schema";
 import admin from "firebase-admin";
+import { supabase, STYLE_IMAGES_BUCKET } from "./supabase";
 
-// Configure multer for file uploads
-const uploadStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/styles");
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${randomUUID()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  },
-});
-
+// Configure multer for memory storage (Supabase upload)
 const upload = multer({
-  storage: uploadStorage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
@@ -67,13 +58,39 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
 // Register admin routes
 export function registerAdminRoutes(app: Express) {
   // Upload image endpoint
-  app.post("/api/admin/upload", requireAdmin, upload.single("image"), (req, res) => {
-    if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+  app.post("/api/admin/upload", requireAdmin, upload.single("image"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const fileExt = path.extname(req.file.originalname);
+      const fileName = `${randomUUID()}${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from(STYLE_IMAGES_BUCKET)
+        .upload(filePath, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false,
+        });
+
+      if (error) {
+        console.error("Supabase upload error:", error);
+        return res.status(500).json({ message: "Failed to upload image to storage" });
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from(STYLE_IMAGES_BUCKET)
+        .getPublicUrl(filePath);
+
+      res.json({ url: publicUrl });
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      res.status(500).json({ message: error.message || "Upload failed" });
     }
-    
-    const imageUrl = `/uploads/styles/${req.file.filename}`;
-    res.json({ url: imageUrl });
   });
 
   // Get all styles (admin view)
