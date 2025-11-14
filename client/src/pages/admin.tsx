@@ -184,13 +184,19 @@ export default function AdminPage() {
         throw new Error("Unauthorized");
       }
 
-      if (!response.ok) throw new Error("Upload failed");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Upload failed");
+      }
 
       const data = await response.json();
       form.setValue("image", data.url);
       toast({ title: "Image uploaded successfully" });
     } catch (error: any) {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      // Only show error toast for non-authorization errors
+      if (!error.message.includes("authentication token") && !error.message.includes("Unauthorized")) {
+        toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      }
     } finally {
       setUploadingImage(false);
     }
