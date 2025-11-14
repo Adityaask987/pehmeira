@@ -4,6 +4,8 @@ import {
   type WishlistItem,
   type InsertWishlistItem,
   type Style,
+  type InsertStyle,
+  type UpdateStyle,
   type Product,
   type OtpVerification,
   type InsertOtpVerification,
@@ -11,7 +13,7 @@ import {
   type InsertSession,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { db, users as usersTable, wishlistItems as wishlistTable, otpVerifications as otpTable, sessions as sessionsTable } from "./db";
+import { db, users as usersTable, wishlistItems as wishlistTable, otpVerifications as otpTable, sessions as sessionsTable, styles as stylesTable } from "./db";
 import { eq, and, gt } from "drizzle-orm";
 
 export interface IStorage {
@@ -32,6 +34,11 @@ export interface IStorage {
   deleteSession(token: string): Promise<void>;
   
   getStyles(gender?: string, bodyType?: string, occasion?: string): Promise<Style[]>;
+  getStyle(id: string): Promise<Style | undefined>;
+  createStyle(style: InsertStyle): Promise<Style>;
+  updateStyle(id: string, updates: UpdateStyle): Promise<Style>;
+  deleteStyle(id: string): Promise<void>;
+  
   getProducts(category?: string): Promise<Product[]>;
   
   getWishlist(userId: string): Promise<WishlistItem[]>;
@@ -58,6 +65,7 @@ export class MemStorage implements IStorage {
   }
 
   private initializeStyles(): Style[] {
+    const now = new Date();
     return [
       {
         id: "style-1",
@@ -69,6 +77,7 @@ export class MemStorage implements IStorage {
         gender: "female",
         image: "https://images.unsplash.com/photo-1539008835657-9e8e9680c956?w=800&q=80",
         products: ["prod-1", "prod-5", "prod-9"],
+        createdAt: now,
       },
       {
         id: "style-2",
@@ -80,6 +89,7 @@ export class MemStorage implements IStorage {
         gender: "male",
         image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80",
         products: ["prod-2", "prod-6", "prod-10"],
+        createdAt: now,
       },
       {
         id: "style-3",
@@ -91,6 +101,7 @@ export class MemStorage implements IStorage {
         gender: "female",
         image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80",
         products: ["prod-3", "prod-7", "prod-11"],
+        createdAt: now,
       },
       {
         id: "style-4",
@@ -102,6 +113,7 @@ export class MemStorage implements IStorage {
         gender: "female",
         image: "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=800&q=80",
         products: ["prod-4", "prod-8", "prod-12"],
+        createdAt: now,
       },
       {
         id: "style-5",
@@ -113,6 +125,7 @@ export class MemStorage implements IStorage {
         gender: "male",
         image: "https://images.unsplash.com/photo-1500917293891-ef795e70e1f6?w=800&q=80",
         products: ["prod-13", "prod-14", "prod-15"],
+        createdAt: now,
       },
       {
         id: "style-6",
@@ -124,6 +137,7 @@ export class MemStorage implements IStorage {
         gender: "female",
         image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80",
         products: ["prod-16", "prod-17", "prod-18"],
+        createdAt: now,
       },
       {
         id: "style-7",
@@ -135,6 +149,7 @@ export class MemStorage implements IStorage {
         gender: "female",
         image: "/attached_assets/Plus_D1_1761306109712.jpeg",
         products: ["prod-4", "prod-17", "prod-8"],
+        createdAt: now,
       },
       {
         id: "style-8",
@@ -146,6 +161,7 @@ export class MemStorage implements IStorage {
         gender: "female",
         image: "/attached_assets/Plus_D2_1761306109716.jpg",
         products: ["prod-4", "prod-17", "prod-8"],
+        createdAt: now,
       },
     ];
   }
@@ -367,7 +383,26 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = {
+      id,
+      name: insertUser.name ?? null,
+      username: insertUser.username ?? null,
+      phone: insertUser.phone ?? null,
+      email: insertUser.email ?? null,
+      googleId: insertUser.googleId ?? null,
+      authMethod: insertUser.authMethod,
+      profilePicture: insertUser.profilePicture ?? null,
+      isAdmin: insertUser.isAdmin ?? false,
+      gender: insertUser.gender ?? null,
+      bodyType: insertUser.bodyType ?? null,
+      shirtSize: insertUser.shirtSize ?? null,
+      pantSize: insertUser.pantSize ?? null,
+      shoeSize: insertUser.shoeSize ?? null,
+      favoriteBrands: insertUser.favoriteBrands ?? null,
+      minBudget: insertUser.minBudget ?? null,
+      maxBudget: insertUser.maxBudget ?? null,
+      createdAt: new Date(),
+    };
     this.users.set(id, user);
     return user;
   }
@@ -504,110 +539,30 @@ export class MemStorage implements IStorage {
       this.sessions.delete(sessionToDelete.id);
     }
   }
+
+  async getStyle(id: string): Promise<Style | undefined> {
+    throw new Error("Not implemented in MemStorage");
+  }
+
+  async createStyle(style: InsertStyle): Promise<Style> {
+    throw new Error("Not implemented in MemStorage");
+  }
+
+  async updateStyle(id: string, updates: UpdateStyle): Promise<Style> {
+    throw new Error("Not implemented in MemStorage");
+  }
+
+  async deleteStyle(id: string): Promise<void> {
+    throw new Error("Not implemented in MemStorage");
+  }
 }
 
 // Database storage implementation using Drizzle ORM
 export class DbStorage implements IStorage {
-  private styles: Style[];
   private products: Product[];
 
   constructor() {
-    // Keep styles and products in memory for now (will be replaced with API calls later)
-    this.styles = this.initializeStyles();
     this.products = this.initializeProducts();
-  }
-
-  private initializeStyles(): Style[] {
-    return [
-      {
-        id: "style-1",
-        name: "Elegant Evening Ensemble",
-        designer: "Sophia Laurent",
-        description: "A sophisticated black dress paired with statement gold jewelry, perfect for making an unforgettable impression at formal events.",
-        occasion: "formal",
-        bodyType: "hourglass",
-        gender: "female",
-        image: "https://images.unsplash.com/photo-1539008835657-9e8e9680c956?w=800&q=80",
-        products: ["prod-1", "prod-5", "prod-9"],
-      },
-      {
-        id: "style-2",
-        name: "Modern Professional",
-        designer: "Marcus Chen",
-        description: "Sharp tailored blazer with crisp white shirt and slim-fit trousers. Confident and polished for the boardroom.",
-        occasion: "business",
-        bodyType: "rectangle-male",
-        gender: "male",
-        image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80",
-        products: ["prod-2", "prod-6", "prod-10"],
-      },
-      {
-        id: "style-3",
-        name: "Casual Chic Weekend",
-        designer: "Emma Rodriguez",
-        description: "Effortlessly stylish with a flowing blouse, high-waisted jeans, and minimalist accessories for relaxed sophistication.",
-        occasion: "casual",
-        bodyType: "pear",
-        gender: "female",
-        image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80",
-        products: ["prod-3", "prod-7", "prod-11"],
-      },
-      {
-        id: "style-4",
-        name: "Romantic Date Night",
-        designer: "Isabella Stone",
-        description: "Delicate lace details and soft silhouettes create an enchanting look perfect for intimate evenings.",
-        occasion: "date-night",
-        bodyType: "hourglass",
-        gender: "female",
-        image: "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=800&q=80",
-        products: ["prod-4", "prod-8", "prod-12"],
-      },
-      {
-        id: "style-5",
-        name: "Smart Casual Blazer Look",
-        designer: "James Mitchell",
-        description: "Versatile navy blazer styled with chinos and loafers for polished casual sophistication.",
-        occasion: "casual",
-        bodyType: "trapezoid-male",
-        gender: "male",
-        image: "https://images.unsplash.com/photo-1500917293891-ef795e70e1f6?w=800&q=80",
-        products: ["prod-13", "prod-14", "prod-15"],
-      },
-      {
-        id: "style-6",
-        name: "Party Ready Glamour",
-        designer: "Sophia Laurent",
-        description: "Sequined top with sleek pants and bold accessories for standout party presence.",
-        occasion: "party",
-        bodyType: "rectangle",
-        gender: "female",
-        image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80",
-        products: ["prod-16", "prod-17", "prod-18"],
-      },
-      {
-        id: "style-7",
-        name: "Sultry Date Night",
-        designer: "Valentina Cruz",
-        description: "Bold lace bodysuit with high-waisted leather skirt and thigh-high boots for a confident, show-stopping evening look.",
-        occasion: "date-night",
-        bodyType: "plus-size",
-        gender: "female",
-        image: "/attached_assets/Plus_D1_1761306109712.jpeg",
-        products: ["prod-4", "prod-17", "prod-8"],
-      },
-      {
-        id: "style-8",
-        name: "Glamorous Evening Out",
-        designer: "Valentina Cruz",
-        description: "Luxe lace top paired with sleek leather mini skirt and statement boots for an unforgettable date night ensemble.",
-        occasion: "date-night",
-        bodyType: "plus-size",
-        gender: "female",
-        image: "/attached_assets/Plus_D2_1761306109716.jpg",
-        products: ["prod-4", "prod-17", "prod-8"],
-      },
-    ];
   }
 
   private initializeProducts(): Product[] {
@@ -836,19 +791,34 @@ export class DbStorage implements IStorage {
   }
 
   async getStyles(gender?: string, bodyType?: string, occasion?: string): Promise<Style[]> {
-    let filtered = this.styles;
-    
-    if (gender) {
-      filtered = filtered.filter(s => s.gender === gender);
+    let query = db.select().from(stylesTable);
+    const conditions = [];
+    if (gender) conditions.push(eq(stylesTable.gender, gender));
+    if (bodyType) conditions.push(eq(stylesTable.bodyType, bodyType));
+    if (occasion) conditions.push(eq(stylesTable.occasion, occasion));
+    if (conditions.length > 0) {
+      return await query.where(and(...conditions));
     }
-    if (bodyType) {
-      filtered = filtered.filter(s => s.bodyType === bodyType);
-    }
-    if (occasion) {
-      filtered = filtered.filter(s => s.occasion === occasion);
-    }
-    
-    return filtered;
+    return await query;
+  }
+
+  async getStyle(id: string): Promise<Style | undefined> {
+    const result = await db.select().from(stylesTable).where(eq(stylesTable.id, id));
+    return result[0];
+  }
+
+  async createStyle(style: InsertStyle): Promise<Style> {
+    const result = await db.insert(stylesTable).values(style).returning();
+    return result[0];
+  }
+
+  async updateStyle(id: string, updates: UpdateStyle): Promise<Style> {
+    const result = await db.update(stylesTable).set(updates).where(eq(stylesTable.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteStyle(id: string): Promise<void> {
+    await db.delete(stylesTable).where(eq(stylesTable.id, id));
   }
 
   async getProducts(category?: string): Promise<Product[]> {

@@ -161,7 +161,19 @@ export const insertStyleSchema = createInsertSchema(styles).omit({
   createdAt: true,
 });
 
+export const updateStyleSchema = z.object({
+  name: z.string().optional(),
+  designer: z.string().optional(),
+  description: z.string().optional(),
+  occasion: z.string().optional(),
+  bodyType: z.string().optional(),
+  gender: z.string().optional(),
+  image: z.string().optional(),
+  products: z.array(z.string()).optional(),
+});
+
 export type InsertStyle = z.infer<typeof insertStyleSchema>;
+export type UpdateStyle = z.infer<typeof updateStyleSchema>;
 export type Style = typeof styles.$inferSelect;
 
 export type BodyType = {
