@@ -8,15 +8,22 @@ A premium web-based fashion styling application that provides personalized outfi
 **Last Updated**: October 23, 2025
 
 ## Recent Changes
+- **November 14, 2025**: Migrated to Supabase for Production Deployment
+  - Migrated database from Replit PostgreSQL to Supabase PostgreSQL
+  - Replaced local file storage (multer) with Supabase Storage for image uploads
+  - Image uploads now stored in Supabase Storage bucket `style-images` (public access)
+  - Updated admin upload endpoint to use Supabase Storage SDK
+  - Removed local uploads directory serving (no longer needed)
+  - Application now fully portable for GitHub → Vercel deployment
+  - Same DATABASE_URL works on Replit, Vercel, and any hosting platform
+  - No local file system dependencies (ready for serverless deployment)
 - **January 14, 2026**: Admin Panel for Style Management
   - Created comprehensive admin panel at /admin with full CRUD operations
   - Added isAdmin field to users table for role-based access control
-  - Implemented file upload system with multer (5MB limit, jpeg/jpg/png/webp)
   - Built admin API endpoints: GET/POST/PATCH/DELETE /api/admin/styles
   - Created admin middleware (requireAdmin) with Firebase token verification
   - Designed luxury black/gold admin UI matching application aesthetic
   - Database-backed styles table replaces hardcoded arrays
-  - Image uploads stored in uploads/styles directory
   - Admin users can add, edit, delete styles with image upload capability
 - **January 9, 2026**: Firebase Authentication with Google OAuth
   - Integrated Firebase Authentication for secure user login
@@ -64,8 +71,9 @@ A premium web-based fashion styling application that provides personalized outfi
 
 **Backend**:
 - Express.js
-- PostgreSQL with Drizzle ORM (DbStorage)
-- Static asset serving for user-uploaded images
+- Supabase PostgreSQL with Drizzle ORM (DbStorage)
+- Supabase Storage for image uploads (serverless-ready)
+- Firebase Admin SDK for authentication
 - TypeScript
 
 **Design System**:
@@ -142,13 +150,81 @@ A premium web-based fashion styling application that provides personalized outfi
 4. **Add New Style**: Click "Add Style" button → Fill form → Upload image → Submit
 5. **Edit Style**: Click pencil icon → Modify fields → Update image if needed → Submit
 6. **Delete Style**: Click trash icon → Confirm deletion
-7. Images are stored in `uploads/styles/` with UUID filenames
+7. Images are stored in Supabase Storage bucket `style-images` with public URLs
 
 **Admin Access Setup:**
 ```sql
 -- Make a user an admin
 UPDATE users SET "isAdmin" = true WHERE email = 'admin@example.com';
 ```
+
+## Deployment to Vercel
+
+Your Pehmeira app is now ready to deploy to Vercel with GitHub! Here's how:
+
+### Prerequisites
+1. ✅ Supabase database configured (DATABASE_URL)
+2. ✅ Supabase Storage bucket `style-images` created
+3. ✅ Firebase project configured with Google OAuth
+
+### Deployment Steps
+
+**1. Push to GitHub**
+```bash
+git init
+git add .
+git commit -m "Pehmeira luxury fashion styling app"
+git remote add origin https://github.com/yourusername/pehmeira.git
+git push -u origin main
+```
+
+**2. Connect to Vercel**
+- Go to https://vercel.com
+- Click "New Project"
+- Import your GitHub repository
+- Vercel will auto-detect the Vite/Express setup
+
+**3. Add Environment Variables**
+In your Vercel project settings, add these secrets:
+```
+DATABASE_URL=postgresql://postgres.xxxxx:password@aws-0-us-east-1.pooler.supabase.com:6543/postgres
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_ANON_KEY=eyJhbGc...
+SUPABASE_SERVICE_KEY=eyJhbGc...
+VITE_FIREBASE_API_KEY=AIza...
+VITE_FIREBASE_APP_ID=1:xxx...
+VITE_FIREBASE_PROJECT_ID=pehmeira-xxx
+SESSION_SECRET=your-session-secret
+SERPAPI_API_KEY=your-serpapi-key
+```
+
+**4. Update Firebase Authorized Domains**
+- Go to Firebase Console → Authentication → Settings
+- Add your Vercel domain: `your-project.vercel.app`
+- Add your custom domain if using one: `pehmeira.com`
+
+**5. Deploy**
+- Click "Deploy" in Vercel
+- Your app will be live at `your-project.vercel.app`
+
+### Custom Domain (Pehmeira.com)
+**In Vercel:**
+1. Go to Project Settings → Domains
+2. Add `pehmeira.com` and `www.pehmeira.com`
+
+**In Your Domain Registrar:**
+1. Add A record: `@` → Vercel IP
+2. Add CNAME record: `www` → `cname.vercel-dns.com`
+
+**Update Firebase:**
+1. Add `pehmeira.com` to Firebase authorized domains
+
+### Benefits of Supabase Migration
+- ✅ No local file system dependencies (Vercel serverless-ready)
+- ✅ Database accessible from anywhere (same URL works everywhere)
+- ✅ Image uploads work on Vercel (Supabase Storage instead of local files)
+- ✅ Automatic backups via Supabase
+- ✅ Easy to scale with Supabase's infrastructure
 
 ## Next Steps (Post-MVP)
 1. Integrate real retail APIs (ShopStyle, Amazon, Nordstrom)

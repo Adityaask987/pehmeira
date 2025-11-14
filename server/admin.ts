@@ -26,6 +26,64 @@ const upload = multer({
   },
 });
 
+// Helper function to extract filename from Supabase URL
+function extractFilenameFromUrl(url: string): string | null {
+  try {
+    // URL format: https://{project}.supabase.co/storage/v1/object/public/style-images/{filename}?t=...
+    // Parse URL to handle query params and extract just the filename
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+    
+    // Extract everything after 'style-images/'
+    const bucketPath = `/object/public/${STYLE_IMAGES_BUCKET}/`;
+    const bucketIndex = pathname.indexOf(bucketPath);
+    
+    if (bucketIndex === -1) {
+      return null;
+    }
+    
+    // Get filename without query params or hash
+    const filename = pathname.substring(bucketIndex + bucketPath.length);
+    return filename || null;
+  } catch {
+    return null;
+  }
+}
+
+// Helper function to delete image from Supabase Storage
+async function deleteImageFromStorage(imageUrl: string): Promise<void> {
+  try {
+    // Check if URL matches configured Supabase host and storage path
+    const urlObj = new URL(imageUrl);
+    const supabaseHost = process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).host : '';
+    
+    const isSupabaseUrl = (
+      imageUrl.includes('/storage/v1/object/public/') && 
+      urlObj.host.toLowerCase() === supabaseHost.toLowerCase()
+    );
+    
+    if (!isSupabaseUrl) {
+      return; // Skip legacy /uploads/styles/ URLs or non-matching hosts
+    }
+
+    const filename = extractFilenameFromUrl(imageUrl);
+    if (!filename) {
+      console.warn('Could not extract filename from Supabase URL:', imageUrl);
+      return;
+    }
+
+    const { error } = await supabase.storage
+      .from(STYLE_IMAGES_BUCKET)
+      .remove([filename]);
+    
+    if (error) {
+      console.error('Failed to delete image from storage:', error);
+    }
+  } catch (error) {
+    console.error('Error deleting image:', error);
+  }
+}
+
 // Admin auth middleware
 export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   try {
@@ -118,7 +176,24 @@ export function registerAdminRoutes(app: Express) {
   app.patch("/api/admin/styles/:id", requireAdmin, async (req, res) => {
     try {
       const validatedData = updateStyleSchema.parse(req.body);
+      
+      // Store old image URL if image is being updated
+      let oldImageUrl: string | null = null;
+      if (validatedData.image) {
+        const existingStyle = await storage.getStyle(req.params.id);
+        if (existingStyle && existingStyle.image && existingStyle.image !== validatedData.image) {
+          oldImageUrl = existingStyle.image;
+        }
+      }
+      
+      // Update database first
       const style = await storage.updateStyle(req.params.id, validatedData);
+      
+      // Only delete old image from storage after successful DB update
+      if (oldImageUrl) {
+        await deleteImageFromStorage(oldImageUrl);
+      }
+      
       res.json(style);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -128,7 +203,17 @@ export function registerAdminRoutes(app: Express) {
   // Delete style
   app.delete("/api/admin/styles/:id", requireAdmin, async (req, res) => {
     try {
+      // Get style first to retrieve image URL
+      const style = await storage.getStyle(req.params.id);
+      
+      // Delete from database first
       await storage.deleteStyle(req.params.id);
+      
+      // Only cleanup storage after successful database deletion
+      if (style && style.image) {
+        await deleteImageFromStorage(style.image);
+      }
+      
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ message: error.message });

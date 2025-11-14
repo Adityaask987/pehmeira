@@ -66,43 +66,112 @@ Once your project is created, you'll need 4 credentials:
 
 ## Step 4: Create Storage Bucket (for Images)
 
+⚠️ **CRITICAL**: Follow these steps exactly to avoid 401/403 errors!
+
 1. In your Supabase dashboard, click **"Storage"** in left sidebar
 2. Click **"Create a new bucket"**
 3. Bucket details:
-   - **Name**: `style-images`
-   - **Public bucket**: ✅ **Enable** (so images are publicly accessible)
+   - **Name**: `style-images` (exact name, case-sensitive)
+   - **Public bucket**: ✅ **MUST CHECK THIS BOX** (makes images publicly accessible)
+   - **File size limit**: 5 MB
+   - **Allowed MIME types**: Leave empty or add: `image/jpeg,image/jpg,image/png,image/webp`
 4. Click **"Create bucket"**
 
-### Set Up Storage Policies (Important!)
+### Set Up Storage Policies (REQUIRED!)
+
+**Without these policies, uploads will fail with 401/403 errors!**
 
 1. Click on your `style-images` bucket
 2. Go to **"Policies"** tab
-3. Click **"New Policy"** → **"For full customization"**
-4. Create this policy for uploads:
+3. You should see "No policies for this bucket yet"
+
+**Policy 1: Allow Authenticated Uploads**
+1. Click **"New Policy"** 
+2. Choose **"For full customization"** (not templates)
+3. Fill in:
    - **Policy name**: `Allow authenticated uploads`
-   - **Allowed operation**: `INSERT`
-   - **Target roles**: `authenticated`
-   - **USING expression**: `true`
-   - **WITH CHECK expression**: `true`
-5. Click **"Review"** → **"Save policy"**
+   - **Allowed operation**: Check **INSERT** only
+   - **Policy definition**: 
+     - **Target roles**: Select `authenticated`
+     - **USING expression**: `true` (type this manually)
+     - **WITH CHECK expression**: `true` (type this manually)
+4. Click **"Review"** → **"Save policy"**
 
-6. Create another policy for public reads:
+**Policy 2: Allow Public Read Access**
+1. Click **"New Policy"** again
+2. Choose **"For full customization"**
+3. Fill in:
    - **Policy name**: `Public read access`
-   - **Allowed operation**: `SELECT`
-   - **Target roles**: `public`
-   - **USING expression**: `true`
-7. Click **"Review"** → **"Save policy"**
+   - **Allowed operation**: Check **SELECT** only
+   - **Policy definition**:
+     - **Target roles**: Select `public`
+     - **USING expression**: `true` (type this manually)
+4. Click **"Review"** → **"Save policy"**
 
-## Step 5: Ready for Migration!
+**Policy 3: Allow Authenticated Delete** (for cleanup)
+1. Click **"New Policy"** again
+2. Choose **"For full customization"**
+3. Fill in:
+   - **Policy name**: `Allow authenticated delete`
+   - **Allowed operation**: Check **DELETE** only
+   - **Policy definition**:
+     - **Target roles**: Select `authenticated`
+     - **USING expression**: `true` (type this manually)
+4. Click **"Review"** → **"Save policy"**
 
-Once you have all 4 credentials added to Replit Secrets and your storage bucket set up, come back and let me know. I'll:
+### Verify Bucket Setup
 
-1. ✅ Install Supabase SDK
-2. ✅ Push your database schema to Supabase
-3. ✅ Migrate existing data
-4. ✅ Update file uploads to use Supabase Storage
-5. ✅ Test everything works
-6. ✅ Update documentation
+After creating policies, you should see **3 policies** in the list:
+- ✅ Allow authenticated uploads (INSERT)
+- ✅ Public read access (SELECT)
+- ✅ Allow authenticated delete (DELETE)
+
+If you don't see all 3, uploads and deletions will fail!
+
+## Step 5: Migrate Existing Images (If You Have Styles Already)
+
+⚠️ **IMPORTANT**: If you already have styles in your database with local image paths (`/uploads/styles/...`), you need to migrate them to Supabase Storage URLs.
+
+### Option A: Re-upload Images via Admin Panel (Recommended)
+1. Sign in to your admin panel at `/admin`
+2. For each existing style:
+   - Click "Edit" (pencil icon)
+   - Upload the same image again (it will go to Supabase Storage)
+   - Save the style
+3. The old local image will be automatically replaced with the Supabase URL
+
+### Option B: SQL Migration (Advanced)
+If you have many styles and want to migrate programmatically:
+
+1. Download all images from your local `uploads/styles/` directory
+2. Upload them to Supabase Storage using the Supabase dashboard or API
+3. Run this SQL to update URLs in database:
+
+```sql
+-- Example: Update a single style's image URL
+UPDATE styles 
+SET image = 'https://your-project.supabase.co/storage/v1/object/public/style-images/new-filename.jpg'
+WHERE id = 'style-id-here';
+
+-- Or update all styles at once (adjust URLs accordingly)
+```
+
+### Why This Matters
+- Old URLs (`/uploads/styles/...`) only work on Replit with local file storage
+- Supabase URLs (`https://...supabase.co/storage/...`) work everywhere (Vercel, production, etc.)
+- The app automatically handles both formats for backwards compatibility
+- New uploads always go to Supabase Storage
+
+## Step 6: Ready for Migration!
+
+Once you have all 4 credentials added to Replit Secrets and your storage bucket set up with correct policies, the migration is complete!
+
+**What's Been Done:**
+1. ✅ Installed Supabase SDK
+2. ✅ Database schema already exists in Supabase
+3. ✅ File uploads now use Supabase Storage
+4. ✅ Storage cleanup on delete/update implemented
+5. ✅ Documentation updated
 
 ## What This Enables
 
