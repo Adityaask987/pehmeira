@@ -33,20 +33,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAdminRoutes(app);
   
   app.post("/api/auth/login", async (req, res) => {
+    console.log("🔐 [AUTH] Login request received");
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        console.log("❌ [AUTH] No authorization header or invalid format");
         return res.status(401).json({ message: "Unauthorized" });
       }
 
       const token = authHeader.split("Bearer ")[1];
+      console.log("🔑 [AUTH] Verifying Firebase token...");
       const decodedToken = await admin.auth().verifyIdToken(token);
+      console.log("✅ [AUTH] Token verified for UID:", decodedToken.uid);
       
       const { uid, email, name, profilePicture } = req.body;
+      console.log("👤 [AUTH] User data from request:", { uid, email, name });
       
       let user = await storage.getUserByGoogleId(uid);
       
       if (!user) {
+        console.log("➕ [AUTH] Creating new user in database...");
         user = await storage.createUser({
           googleId: uid,
           email: email || null,
@@ -64,26 +70,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           minBudget: null,
           maxBudget: null,
         });
+        console.log("✅ [AUTH] User created with ID:", user.id);
+      } else {
+        console.log("✅ [AUTH] Existing user found:", user.id);
       }
       
       res.json(user);
     } catch (error: any) {
-      console.error("Login error:", error);
+      console.error("❌ [AUTH] Login error:", error);
       res.status(500).json({ message: error.message });
     }
   });
 
   app.get("/api/auth/me", verifyFirebaseToken, async (req, res) => {
+    console.log("🔍 [AUTH] /me request received");
     try {
       const firebaseUser = (req as any).firebaseUser;
+      console.log("👤 [AUTH] Looking up user with UID:", firebaseUser.uid);
       const user = await storage.getUserByGoogleId(firebaseUser.uid);
       
       if (!user) {
+        console.log("❌ [AUTH] User not found in database");
         return res.status(404).json({ message: "User not found" });
       }
       
+      console.log("✅ [AUTH] User found:", user.id);
       res.json(user);
     } catch (error: any) {
+      console.error("❌ [AUTH] /me error:", error);
       res.status(500).json({ message: error.message });
     }
   });
