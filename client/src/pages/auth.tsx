@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { signInWithGoogle, handleRedirectResult } from "@/lib/firebase";
+import { signInWithGoogle } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -11,37 +11,15 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const checkRedirectResult = async () => {
-      setLoading(true);
-      try {
-        const user = await handleRedirectResult();
-        if (user) {
-          toast({
-            title: "Welcome to Pehmeira",
-            description: "You've successfully signed in",
-          });
-          setLocation("/occasions");
-        }
-      } catch (error: any) {
-        console.error("Redirect error:", error);
-        toast({
-          title: "Sign in failed",
-          description: error.message || "Please try again",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkRedirectResult();
-  }, []);
-
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
       await signInWithGoogle();
+      toast({
+        title: "Welcome to Pehmeira",
+        description: "You've successfully signed in",
+      });
+      setLocation("/occasions");
     } catch (error: any) {
       console.error("Sign in error:", error);
       toast({
@@ -49,6 +27,7 @@ export default function Auth() {
         description: error.message || "Please try again",
         variant: "destructive",
       });
+    } finally {
       setLoading(false);
     }
   };
