@@ -288,17 +288,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const fetchCategoryProducts = async (category: typeof categories[number]) => {
         try {
-          const lensResponse = await fetch(
-            `https://serpapi.com/search.json?engine=google_lens&url=${encodeURIComponent(imageUrl)}&q=${encodeURIComponent(searchQueries[category])}&api_key=${apiKey}`
-          );
+          const apiUrl = `https://serpapi.com/search.json?engine=google_lens&image_url=${encodeURIComponent(imageUrl)}&q=${encodeURIComponent(searchQueries[category])}&api_key=${apiKey}`;
+          console.log(`[SEARCH] Fetching ${category} products from:`, apiUrl.replace(apiKey, 'API_KEY_HIDDEN'));
+          
+          const lensResponse = await fetch(apiUrl);
           
           if (!lensResponse.ok) {
-            console.error(`Failed to fetch ${category} products:`, lensResponse.statusText);
+            console.error(`[SEARCH] Failed to fetch ${category} products:`, lensResponse.statusText);
             return { category, products: [] };
           }
 
           const lensData = await lensResponse.json();
+          console.log(`[SEARCH] ${category} response keys:`, Object.keys(lensData));
+          
+          if (lensData.error) {
+            console.error(`[SEARCH] SerpAPI error for ${category}:`, lensData.error);
+          }
+          
           const visualMatches = lensData.visual_matches || [];
+          console.log(`[SEARCH] ${category} visual_matches count:`, visualMatches.length);
           
           const products = visualMatches.slice(0, 10).map((item: any, index: number): SearchedProduct => ({
             title: item.title || 'Untitled Product',
@@ -314,7 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           return { category, products };
         } catch (error: any) {
-          console.error(`Error fetching ${category} products:`, error.message);
+          console.error(`[SEARCH] Error fetching ${category} products:`, error.message);
           return { category, products: [] };
         }
       };
