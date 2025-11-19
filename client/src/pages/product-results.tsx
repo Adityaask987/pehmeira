@@ -115,17 +115,20 @@ export default function ProductResults() {
         </div>
 
         <Tabs defaultValue="upper" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8" data-testid="tabs-categories">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2 mb-8 h-auto" data-testid="tabs-categories">
             {Object.entries(categoryLabels).map(([key, label]) => (
               <TabsTrigger 
                 key={key} 
                 value={key}
+                className="text-xs sm:text-sm whitespace-normal h-auto py-3"
                 data-testid={`tab-${key}`}
               >
-                {label}
-                <Badge variant="secondary" className="ml-2">
-                  {results[key as keyof ProductSearchResponse].length}
-                </Badge>
+                <span className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+                  <span className="text-center sm:text-left">{label}</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {results[key as keyof ProductSearchResponse].length}
+                  </Badge>
+                </span>
               </TabsTrigger>
             ))}
           </TabsList>
