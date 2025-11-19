@@ -153,8 +153,6 @@ export const styles = pgTable("styles", {
   gender: text("gender").notNull(),
   image: text("image").notNull(),
   products: text("products").array().default(sql`ARRAY[]::text[]`).notNull(),
-  // Gemini AI analysis cache (colors, pattern, garment type)
-  aiAnalysis: jsonb("ai_analysis"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -172,7 +170,6 @@ export const updateStyleSchema = z.object({
   gender: z.string().optional(),
   image: z.string().optional(),
   products: z.array(z.string()).optional(),
-  aiAnalysis: z.any().optional(), // Gemini AI analysis cache
 });
 
 export type InsertStyle = z.infer<typeof insertStyleSchema>;
