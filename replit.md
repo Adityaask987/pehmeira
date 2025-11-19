@@ -8,21 +8,17 @@ A premium web-based fashion styling application that provides personalized outfi
 **Last Updated**: October 23, 2025
 
 ## Recent Changes
-- **November 19, 2025**: AI-Powered Color and Pattern Matching with Database Caching
-  - Integrated Gemini AI for style image analysis (color extraction and pattern detection)
-  - Enhanced Google Shopping search queries with color and pattern keywords from analyzed styles
-  - Products now match style aesthetics through intelligent query enhancement (e.g., "black floral kurti")
-  - Practical approach: analyze style once, enhance all queries (fast and cost-effective)
-  - Rate-limited image analysis (max 3 concurrent requests) using p-limit
-  - Color matching uses dominant color extraction with color family recognition
-  - Pattern matching identifies solid, floral, striped, geometric, etc. patterns
-  - No per-product analysis (too expensive) - relies on enhanced search queries instead
-  - **Database Caching**: Added `aiAnalysis` JSONB field to styles table for caching Gemini analysis results
-  - **First "Shop This Look" click**: Analyzes image + caches result (5-15 seconds)
-  - **Subsequent clicks**: Uses cached analysis (instant response, no Gemini API call)
-  - **Zod Validation**: Added `imageAnalysisSchema` with safeParse for robust error handling
-  - **Fallback Defaults**: Returns safe default analysis if Gemini API fails or returns malformed JSON
-  - **Performance**: Eliminates redundant API calls, reduces latency, and prevents quota exhaustion
+- **November 19, 2025**: FREE Clothing Segmentation for Accurate Product Matching
+  - **Replaced Gemini AI with FREE Roboflow clothing detection** (no cost, unlimited usage on free tier)
+  - **Clothing Segmentation Approach**: Detects individual garments (tops, bottoms, shoes, accessories) in style images
+  - **Per-Garment Search**: Each detected clothing item is cropped and searched separately via Google Lens
+  - **Accuracy Improvement**: Searches individual garments instead of full image = much better product matches
+  - **Implementation**: Roboflow API → Crop garments → Google Lens per crop → Categorized results
+  - **Robust Fallback**: If Roboflow fails (403/errors), automatically falls back to Google Shopping API
+  - **No AI costs**: Removed expensive Gemini integration, using free Roboflow tier instead
+  - **Rate limiting**: Max 3 concurrent Roboflow requests using p-limit
+  - **Image processing**: Sharp library for precise garment cropping from bounding boxes
+  - **Workflow**: Style image → Detect clothing → Crop regions → Search each → Filter Indian merchants → Return 10 products/category
 - **November 14, 2025**: Migrated to Supabase for Production Deployment
   - Migrated database from Replit PostgreSQL to Supabase PostgreSQL
   - Replaced local file storage (multer) with Supabase Storage for image uploads
