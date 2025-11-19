@@ -30,6 +30,28 @@ async function verifyFirebaseToken(req: Request, res: Response, next: NextFuncti
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint to verify deployment configuration
+  app.get("/api/health", (req, res) => {
+    const hasDatabase = !!process.env.DATABASE_URL;
+    const hasSupabase = !!process.env.SUPABASE_URL;
+    const nodeEnv = process.env.NODE_ENV || 'development';
+    
+    res.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      environment: nodeEnv,
+      database: {
+        configured: hasDatabase,
+        type: hasDatabase ? "Supabase PostgreSQL" : "NOT CONFIGURED",
+        host: hasDatabase ? process.env.DATABASE_URL?.split('@')[1]?.split('/')[0] : null,
+      },
+      supabase: {
+        configured: hasSupabase,
+      },
+      version: "2.0.0-dbstorage-safety-guards", // Updated when DbStorage safety guards added
+    });
+  });
+  
   // Register admin routes
   registerAdminRoutes(app);
   
