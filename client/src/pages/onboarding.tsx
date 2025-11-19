@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BodyTypeCard } from "@/components/body-type-card";
+import { Header } from "@/components/header";
 import { User, Users } from "lucide-react";
 import type { BodyType } from "@shared/schema";
 
@@ -86,6 +87,7 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       <div className="mx-auto max-w-6xl px-4 py-12 md:py-20">
         {step === "gender" && (
           <div className="space-y-12">
