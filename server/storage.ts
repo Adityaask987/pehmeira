@@ -969,4 +969,19 @@ export class DbStorage implements IStorage {
   }
 }
 
+// Production safety: Ensure DATABASE_URL is configured
+if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+  console.error("❌ FATAL: DATABASE_URL not configured in production environment!");
+  console.error("❌ This will prevent user logins and data persistence.");
+  console.error("❌ Please configure DATABASE_URL in your deployment platform (Vercel/Railway/etc.)");
+  throw new Error("DATABASE_URL must be configured in production. See deployment documentation.");
+}
+
+// Initialize database storage
+console.log("🗄️  Initializing database storage...");
+console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`🔗 Database: ${process.env.DATABASE_URL ? 'Supabase PostgreSQL' : 'NOT CONFIGURED'}`);
+
 export const storage = new DbStorage();
+
+console.log("✅ DbStorage initialized successfully");
