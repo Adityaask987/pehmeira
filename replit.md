@@ -8,7 +8,7 @@ A premium web-based fashion styling application that provides personalized outfi
 **Last Updated**: October 23, 2025
 
 ## Recent Changes
-- **November 19, 2025**: AI-Powered Color and Pattern Matching
+- **November 19, 2025**: AI-Powered Color and Pattern Matching with Database Caching
   - Integrated Gemini AI for style image analysis (color extraction and pattern detection)
   - Enhanced Google Shopping search queries with color and pattern keywords from analyzed styles
   - Products now match style aesthetics through intelligent query enhancement (e.g., "black floral kurti")
@@ -17,6 +17,12 @@ A premium web-based fashion styling application that provides personalized outfi
   - Color matching uses dominant color extraction with color family recognition
   - Pattern matching identifies solid, floral, striped, geometric, etc. patterns
   - No per-product analysis (too expensive) - relies on enhanced search queries instead
+  - **Database Caching**: Added `aiAnalysis` JSONB field to styles table for caching Gemini analysis results
+  - **First "Shop This Look" click**: Analyzes image + caches result (5-15 seconds)
+  - **Subsequent clicks**: Uses cached analysis (instant response, no Gemini API call)
+  - **Zod Validation**: Added `imageAnalysisSchema` with safeParse for robust error handling
+  - **Fallback Defaults**: Returns safe default analysis if Gemini API fails or returns malformed JSON
+  - **Performance**: Eliminates redundant API calls, reduces latency, and prevents quota exhaustion
 - **November 14, 2025**: Migrated to Supabase for Production Deployment
   - Migrated database from Replit PostgreSQL to Supabase PostgreSQL
   - Replaced local file storage (multer) with Supabase Storage for image uploads
