@@ -781,8 +781,57 @@ export class DbStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const result = await db.insert(usersTable).values(insertUser).returning();
-    return result[0];
+    try {
+      console.log("[STORAGE] Attempting to insert user into Supabase:", { 
+        googleId: insertUser.googleId, 
+        email: insertUser.email 
+      });
+      
+      const result = await db.insert(usersTable).values(insertUser).returning();
+      
+      if (!result || result.length === 0) {
+        throw new Error("Database insert returned no results");
+      }
+      
+      console.log("[STORAGE] User successfully inserted:", result[0].id);
+      return result[0];
+    } catch (error: any) {
+      console.error("[STORAGE] Failed to create user in database:", {
+        error: error.message,
+        code: error.code,
+        detail: error.detail,
+        constraint: error.constraint,
+        table: error.table,
+      });
+      
+      // Preserve structured error information
+      const dbError: any = new Error();
+      
+      if (error.code === '23505') { // Unique constraint violation
+        dbError.message = `User already exists: ${error.detail || error.message}`;
+        dbError.code = error.code;
+        dbError.constraint = error.constraint;
+      } else if (error.code === '23503') { // Foreign key violation
+        dbError.message = `Invalid reference: ${error.detail || error.message}`;
+        dbError.code = error.code;
+        dbError.constraint = error.constraint;
+      } else if (error.code === '23502') { // Not null violation
+        dbError.message = `Missing required field: ${error.detail || error.message}`;
+        dbError.code = error.code;
+        dbError.column = error.column;
+      } else {
+        dbError.message = `Database error: ${error.message}`;
+        dbError.code = error.code;
+        dbError.detail = error.detail;
+      }
+      
+      // Preserve original error properties for debugging
+      dbError.pgCode = error.code;
+      dbError.pgDetail = error.detail;
+      dbError.pgHint = error.hint;
+      
+      throw dbError;
+    }
   }
 
   async updateUser(id: string, updates: Partial<InsertUser>): Promise<User> {

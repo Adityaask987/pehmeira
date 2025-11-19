@@ -50,36 +50,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { uid, email, name, profilePicture } = req.body;
       console.log("👤 [AUTH] User data from request:", { uid, email, name });
       
+      // Check if user already exists
+      console.log("🔍 [AUTH] Checking if user exists in database...");
       let user = await storage.getUserByGoogleId(uid);
       
       if (!user) {
-        console.log("➕ [AUTH] Creating new user in database...");
-        user = await storage.createUser({
-          googleId: uid,
-          email: email || null,
-          name: name || null,
-          profilePicture: profilePicture || null,
-          authMethod: "google",
-          username: null,
-          phone: null,
-          gender: null,
-          bodyType: null,
-          shirtSize: null,
-          pantSize: null,
-          shoeSize: null,
-          favoriteBrands: null,
-          minBudget: null,
-          maxBudget: null,
-        });
-        console.log("✅ [AUTH] User created with ID:", user.id);
+        console.log("➕ [AUTH] Creating new user in Supabase database...");
+        console.log("📊 [AUTH] Database URL configured:", !!process.env.DATABASE_URL);
+        
+        try {
+          user = await storage.createUser({
+            googleId: uid,
+            email: email || null,
+            name: name || null,
+            profilePicture: profilePicture || null,
+            authMethod: "google",
+            username: null,
+            phone: null,
+            gender: null,
+            bodyType: null,
+            shirtSize: null,
+            pantSize: null,
+            shoeSize: null,
+            favoriteBrands: null,
+            minBudget: null,
+            maxBudget: null,
+          });
+          console.log("✅ [AUTH] User successfully created in Supabase with ID:", user.id);
+          console.log("💾 [AUTH] User persisted to database:", { id: user.id, email: user.email, googleId: user.googleId });
+        } catch (dbError: any) {
+          console.error("💥 [AUTH] Database error creating user:", {
+            message: dbError.message,
+            code: dbError.code || dbError.pgCode,
+            detail: dbError.detail || dbError.pgDetail,
+            hint: dbError.hint || dbError.pgHint,
+            constraint: dbError.constraint,
+          });
+          // Re-throw with preserved error structure
+          throw dbError;
+        }
       } else {
-        console.log("✅ [AUTH] Existing user found:", user.id);
+        console.log("✅ [AUTH] Existing user found in database:", user.id);
       }
       
       res.json(user);
     } catch (error: any) {
-      console.error("❌ [AUTH] Login error:", error);
-      res.status(500).json({ message: error.message });
+      console.error("❌ [AUTH] Login error:", {
+        message: error.message,
+        stack: error.stack,
+        code: error.code || error.pgCode,
+        detail: error.detail || error.pgDetail,
+        constraint: error.constraint,
+      });
+      
+      const response: any = { 
+        message: error.message || "Failed to authenticate user",
+        code: error.code || error.pgCode,
+        constraint: error.constraint,
+      };
+      
+      // Include full diagnostics in development
+      if (process.env.NODE_ENV === "development") {
+        response.detail = error.pgDetail || error.detail;
+        response.hint = error.pgHint || error.hint;
+        response.stack = error.stack;
+      }
+      
+      res.status(500).json(response);
     }
   });
 
@@ -98,8 +135,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("✅ [AUTH] User found:", user.id);
       res.json(user);
     } catch (error: any) {
-      console.error("❌ [AUTH] /me error:", error);
-      res.status(500).json({ message: error.message });
+      console.error("❌ [AUTH] /me error:", {
+        message: error.message,
+        code: error.code,
+        stack: error.stack,
+      });
+      
+      const response: any = { 
+        message: error.message || "Failed to retrieve user data"
+      };
+      
+      if (process.env.NODE_ENV === "development") {
+        response.stack = error.stack;
+        response.code = error.code;
+      }
+      
+      res.status(500).json(response);
     }
   });
 
