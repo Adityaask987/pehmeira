@@ -18,6 +18,45 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 
+// Body type options for female
+const FEMALE_BODY_TYPES = [
+  { value: "petite", label: "Petite" },
+  { value: "slim", label: "Slim" },
+  { value: "athletic", label: "Athletic" },
+  { value: "rectangle", label: "Rectangle" },
+  { value: "hourglass", label: "Hourglass" },
+  { value: "curvy-hourglass", label: "Curvy Hourglass" },
+  { value: "pear", label: "Pear" },
+  { value: "triangle", label: "Triangle" },
+  { value: "sporty", label: "Sporty" },
+  { value: "inverted-triangle", label: "Inverted Triangle" },
+  { value: "apple", label: "Apple" },
+  { value: "round-apple", label: "Round Apple" },
+  { value: "full-figure", label: "Full Figure" },
+  { value: "plus-size", label: "Plus Size" },
+  { value: "voluptuous", label: "Voluptuous" },
+  { value: "curvy-plus", label: "Curvy Plus" },
+];
+
+// Body type options for male
+const MALE_BODY_TYPES = [
+  { value: "very-slim", label: "Very Slim" },
+  { value: "slim", label: "Slim" },
+  { value: "lean-athletic", label: "Lean Athletic" },
+  { value: "rectangle-male", label: "Rectangle" },
+  { value: "medium", label: "Medium" },
+  { value: "triangle", label: "Triangle" },
+  { value: "inverted-triangle-male", label: "Inverted Triangle" },
+  { value: "broad-shoulder", label: "Broad Shoulder" },
+  { value: "trapezoid", label: "Trapezoid" },
+  { value: "muscular", label: "Muscular" },
+  { value: "stocky", label: "Stocky" },
+  { value: "oval", label: "Oval" },
+  { value: "heavyset", label: "Heavyset" },
+  { value: "large-frame", label: "Large Frame" },
+  { value: "plus-size-male", label: "Plus Size" },
+];
+
 export default function AdminPage() {
   const { user, firebaseUser, loading } = useAuth();
   const [, setLocation] = useLocation();
@@ -151,6 +190,30 @@ export default function AdminPage() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  // Reset body type when gender changes to avoid invalid combinations
+  // Skip clearing on initial form reset during edit to preserve existing values
+  useEffect(() => {
+    const subscription = form.watch((value, { name, type }) => {
+      // Only reset bodyType if gender changes AND we're not in the middle of a form reset
+      if (name === "gender" && type === "change") {
+        const currentBodyType = form.getValues("bodyType");
+        const currentGender = value.gender;
+        
+        // Only clear if bodyType doesn't match the new gender's options
+        if (currentBodyType && currentGender) {
+          const validOptions = currentGender === "female" 
+            ? FEMALE_BODY_TYPES.map(bt => bt.value)
+            : MALE_BODY_TYPES.map(bt => bt.value);
+          
+          if (!validOptions.includes(currentBodyType)) {
+            form.setValue("bodyType", "");
+          }
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   const handleImageUpload = async (file: File) => {
     setUploadingImage(true);
@@ -433,15 +496,35 @@ export default function AdminPage() {
                 <FormField
                   control={form.control}
                   name="bodyType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Body Type</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g. hourglass, rectangle-male, plus-size" className="bg-black border-gold/20" data-testid="input-bodytype" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const selectedGender = form.watch("gender");
+                    const bodyTypeOptions = selectedGender === "female" ? FEMALE_BODY_TYPES : selectedGender === "male" ? MALE_BODY_TYPES : [];
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>Body Type</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value}
+                          disabled={!selectedGender}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="bg-black border-gold/20" data-testid="select-bodytype">
+                              <SelectValue placeholder={selectedGender ? "Select body type" : "Select gender first"} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-zinc-900 border-gold/20 max-h-80 overflow-y-auto">
+                            {bodyTypeOptions.map((bodyType) => (
+                              <SelectItem key={bodyType.value} value={bodyType.value}>
+                                {bodyType.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 <div>
