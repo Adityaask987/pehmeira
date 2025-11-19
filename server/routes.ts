@@ -5,7 +5,7 @@ import { insertUserSchema, insertWishlistItemSchema, updateUserProfileSchema, ty
 import { fetchRetailProducts, fetchProductById, findSimilarProducts } from "./retail-api";
 import admin from "firebase-admin";
 import { registerAdminRoutes } from "./admin";
-import { analyzeImage, calculateColorSimilarity, calculatePatternSimilarity, type ImageAnalysis } from "./image-analysis";
+import { segmentAndCropGarments, type CroppedGarment } from "./clothing-segmentation";
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -272,188 +272,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? style.image 
         : `${req.protocol}://${req.get('host')}${style.image}`;
 
-      // Check if we have cached AI analysis for this style
-      let styleAnalysis: ImageAnalysis | null = null;
+      console.log(`[SEGMENTATION] Starting clothing segmentation for style ${styleId}`);
+      console.log(`[SEGMENTATION] Image URL: ${imageUrl}`);
       
-      if (style.aiAnalysis) {
-        styleAnalysis = style.aiAnalysis as ImageAnalysis;
-        console.log(`[IMAGE_ANALYSIS] Using cached analysis for style ${styleId}`);
-        console.log(`[IMAGE_ANALYSIS] Cached colors: ${styleAnalysis.dominantColors.join(', ')}`);
-        console.log(`[IMAGE_ANALYSIS] Cached pattern: ${styleAnalysis.pattern}`);
-      } else {
-        // Analyze the style image and cache the results
-        console.log(`[IMAGE_ANALYSIS] Analyzing style image for color and pattern information...`);
-        
-        try {
-          styleAnalysis = await analyzeImage(imageUrl);
-          console.log(`[IMAGE_ANALYSIS] New analysis - Colors: ${styleAnalysis.dominantColors.join(', ')}`);
-          console.log(`[IMAGE_ANALYSIS] New analysis - Pattern: ${styleAnalysis.pattern} - ${styleAnalysis.patternDetails}`);
-          
-          // Cache the analysis in the database for future requests
-          await storage.updateStyle(styleId, { aiAnalysis: styleAnalysis as any });
-          console.log(`[IMAGE_ANALYSIS] Cached analysis for style ${styleId}`);
-        } catch (error: any) {
-          console.error(`[IMAGE_ANALYSIS] Failed to analyze style image:`, error.message);
-          // Continue with generic search if analysis fails
-        }
+      // Step 1: Segment and crop individual garments from the style image
+      const croppedGarments = await segmentAndCropGarments(imageUrl);
+      
+      if (croppedGarments.length === 0) {
+        console.log(`[SEGMENTATION] No clothing items detected, falling back to full image search`);
+        // Fallback: Search with full image if no garments detected
       }
 
-      // Indian e-commerce domain whitelist
-      const indianDomains = [
-        'amazon.in',
-        'flipkart.com',
-        'myntra.com',
-        'ajio.com',
-        'meesho.com'
-      ];
-
       // Indian e-commerce merchant names (for Shopping API source field)
-      const indianMerchants = [
-        'amazon',
-        'flipkart',
-        'myntra',
-        'ajio',
-        'meesho'
-      ];
+      const indianMerchants = ['amazon', 'flipkart', 'myntra', 'ajio', 'meesho'];
 
-      // Keyword taxonomy for precise categorization
-      const categoryKeywords = {
-        upper: {
-          include: ['top', 'shirt', 'blouse', 'tshirt', 't-shirt', 'kurti', 'kurta', 'tunic', 'sweater', 
-                   'jacket', 'blazer', 'cardigan', 'hoodie', 'sweatshirt', 'crop', 'tank', 'cami', 
-                   'polo', 'button', 'sleeve', 'collar', 'bodice'],
-          exclude: ['pant', 'jean', 'trouser', 'skirt', 'short', 'legging', 'shoe', 'boot', 'sandal', 
-                   'sneaker', 'heel', 'bag', 'watch', 'necklace', 'bracelet', 'ring', 'earring']
-        },
-        lower: {
-          include: ['pant', 'jean', 'trouser', 'skirt', 'short', 'legging', 'jogger', 'track', 
-                   'palazzo', 'salwar', 'dhoti', 'capri', 'culottes', 'chino', 'cargo', 'denim'],
-          exclude: ['top', 'shirt', 'blouse', 'shoe', 'boot', 'sandal', 'sneaker', 'heel', 
-                   'bag', 'watch', 'necklace', 'bracelet', 'jacket', 'sweater']
-        },
-        footwear: {
-          include: ['shoe', 'boot', 'sandal', 'sneaker', 'heel', 'slipper', 'flip', 'flop', 
-                   'loafer', 'oxford', 'derby', 'moccasin', 'wedge', 'pump', 'stiletto', 
-                   'ankle boot', 'chelsea', 'trainer', 'runner', 'kicks'],
-          exclude: ['shirt', 'pant', 'skirt', 'bag', 'watch', 'necklace', 'bracelet', 'ring']
-        },
-        accessories: {
-          include: ['bag', 'watch', 'necklace', 'bracelet', 'ring', 'earring', 'jewel', 'jewelry', 
-                   'pendant', 'chain', 'bangle', 'anklet', 'brooch', 'scarf', 'stole', 'belt', 
-                   'wallet', 'purse', 'clutch', 'handbag', 'sling', 'tote', 'backpack', 'sunglass'],
-          exclude: ['shoe', 'boot', 'sandal', 'sneaker', 'shirt', 'pant', 'skirt', 'jean']
-        }
-      };
-
-      // Function to check if URL is from Indian e-commerce
-      const isIndianEcommerce = (url: string): boolean => {
-        try {
-          const hostname = new URL(url).hostname.toLowerCase();
-          return indianDomains.some(domain => 
-            hostname === domain || 
-            hostname.endsWith(`.${domain}`) ||
-            hostname.includes(domain)
-          );
-        } catch {
-          return false;
-        }
-      };
-
-      // Function to check if source is from Indian merchant (for Shopping API)
+      // Function to check if source is from Indian merchant
       const isIndianMerchant = (source: string): boolean => {
         const lowerSource = source.toLowerCase();
         return indianMerchants.some(merchant => lowerSource.includes(merchant));
       };
 
-      // Function to categorize product based on title
-      const categorizeProduct = (title: string): 'upper' | 'lower' | 'footwear' | 'accessories' | null => {
-        const lowerTitle = title.toLowerCase();
-        
-        type Category = 'upper' | 'lower' | 'footwear' | 'accessories';
-        const categories: Category[] = ['upper', 'lower', 'footwear', 'accessories'];
-        
-        // Score each category
-        const scores: Record<Category, number> = {
-          upper: 0,
-          lower: 0,
-          footwear: 0,
-          accessories: 0
-        };
-
-        for (const category of categories) {
-          const keywords = categoryKeywords[category];
-          
-          // Add points for include keywords
-          for (const keyword of keywords.include) {
-            if (lowerTitle.includes(keyword)) {
-              scores[category] += 10;
-            }
-          }
-          
-          // Subtract points for exclude keywords (stronger penalty)
-          for (const keyword of keywords.exclude) {
-            if (lowerTitle.includes(keyword)) {
-              scores[category] -= 50;
-            }
-          }
-        }
-
-        // Find category with highest score (must be positive)
-        let bestCategory: Category | null = null;
-        let bestScore = 0;
-
-        for (const category of categories) {
-          if (scores[category] > bestScore) {
-            bestScore = scores[category];
-            bestCategory = category;
-          }
-        }
-
-        return bestScore > 0 ? bestCategory : null;
-      };
-
-      // Make ONE API call with India parameters
-      const apiUrl = `https://serpapi.com/search.json?engine=google_lens&url=${encodeURIComponent(imageUrl)}&gl=in&hl=en&api_key=${apiKey}`;
-      console.log(`[SEARCH] Fetching products for India market`);
-      console.log(`[SEARCH] Image URL:`, imageUrl);
-      
-      const lensResponse = await fetch(apiUrl);
-      
-      if (!lensResponse.ok) {
-        const errorText = await lensResponse.text();
-        console.error(`[SEARCH] Failed:`, lensResponse.statusText);
-        console.error(`[SEARCH] Error details:`, errorText);
-        return res.status(500).json({ message: "Failed to fetch products from Google Lens" });
-      }
-
-      const lensData = await lensResponse.json();
-      console.log(`[SEARCH] Total visual_matches:`, (lensData.visual_matches || []).length);
-      
-      if (lensData.error) {
-        console.error(`[SEARCH] SerpAPI error:`, lensData.error);
-        return res.status(500).json({ message: lensData.error });
-      }
-      
-      const visualMatches = lensData.visual_matches || [];
-      
-      // Build enhanced search queries with color and pattern keywords from style analysis
-      const buildEnhancedQuery = (baseQuery: string): string => {
-        if (!styleAnalysis) {
-          return baseQuery;
-        }
-
-        // Extract main colors (first 2-3) and pattern type
-        const colorKeywords = styleAnalysis.dominantColors.slice(0, 3).join(' ');
-        const patternKeyword = styleAnalysis.pattern !== 'solid' ? styleAnalysis.pattern : '';
-        
-        // Combine base query with color and pattern keywords
-        const enhancedQuery = `${baseQuery} ${colorKeywords} ${patternKeyword}`.trim();
-        console.log(`[ENHANCED_QUERY] Base: "${baseQuery}" → Enhanced: "${enhancedQuery}"`);
-        
-        return enhancedQuery;
-      };
-
-      // Categorize and filter all products
+      // Step 2: For each cropped garment, search Google Lens
       const categorized: Record<'upper' | 'lower' | 'footwear' | 'accessories', any[]> = {
         upper: [],
         lower: [],
@@ -461,134 +300,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accessories: []
       };
 
-      let processedCount = 0;
-      let indianSiteCount = 0;
-      let categorizedCount = 0;
+      console.log(`[SEARCH] Searching Google Lens for ${croppedGarments.length} cropped garments...`);
 
-      for (const item of visualMatches) {
-        processedCount++;
-        
-        // Filter 1: Must be from Indian e-commerce
-        if (!isIndianEcommerce(item.link || '')) {
-          continue;
-        }
-        indianSiteCount++;
+      for (const garment of croppedGarments) {
+        try {
+          // Convert image buffer to base64
+          const base64Image = garment.imageBuffer.toString('base64');
+          const dataUri = `data:image/jpeg;base64,${base64Image}`;
 
-        // Filter 2: Must be categorizable
-        const category = categorizeProduct(item.title || '');
-        if (!category) {
-          continue;
-        }
-        categorizedCount++;
+          console.log(`[SEARCH] Searching for ${garment.className} (${garment.category})...`);
 
-        categorized[category].push(item);
-      }
+          //Call Google Lens with base64 image
+          const apiUrl = `https://serpapi.com/search.json?engine=google_lens&url=${encodeURIComponent(dataUri)}&gl=in&hl=en&api_key=${apiKey}`;
+          
+          const lensResponse = await fetch(apiUrl);
+          if (!lensResponse.ok) {
+            console.error(`[SEARCH] Google Lens failed for ${garment.className}`);
+            continue;
+          }
 
-      console.log(`[SEARCH] Processed ${processedCount} items, ${indianSiteCount} from Indian sites, ${categorizedCount} categorized`);
-      console.log(`[SEARCH] Upper: ${categorized.upper.length}, Lower: ${categorized.lower.length}, Footwear: ${categorized.footwear.length}, Accessories: ${categorized.accessories.length}`);
+          const lensData = await lensResponse.json();
+          const visualMatches = lensData.visual_matches || [];
 
-      // Fallback: Use Google Shopping API for categories with < 10 results
-      // Enhanced with color and pattern keywords from style analysis
-      const baseCategoryQueries = {
-        upper: `women top shirt blouse kurti`,
-        lower: `women pants jeans skirt leggings`,
-        footwear: `women shoes heels boots sandals`,
-        accessories: `women jewelry necklace bracelet watch bag`
-      };
+          console.log(`[SEARCH] Found ${visualMatches.length} matches for ${garment.className}`);
 
-      // Enhance queries with color/pattern keywords
-      const categoryQueries = {
-        upper: buildEnhancedQuery(baseCategoryQueries.upper),
-        lower: buildEnhancedQuery(baseCategoryQueries.lower),
-        footwear: buildEnhancedQuery(baseCategoryQueries.footwear),
-        accessories: buildEnhancedQuery(baseCategoryQueries.accessories)
-      };
-
-      const categoriesToFallback: Array<'upper' | 'lower' | 'footwear' | 'accessories'> = [];
-      
-      if (categorized.upper.length < 10) categoriesToFallback.push('upper');
-      if (categorized.lower.length < 10) categoriesToFallback.push('lower');
-      if (categorized.footwear.length < 10) categoriesToFallback.push('footwear');
-      if (categorized.accessories.length < 10) categoriesToFallback.push('accessories');
-
-      if (categoriesToFallback.length > 0) {
-        console.log(`[SEARCH] Falling back to Google Shopping API for categories:`, categoriesToFallback);
-        
-        const shoppingFallbacks = await Promise.all(
-          categoriesToFallback.map(async (category) => {
-            try {
-              const query = categoryQueries[category];
-              const shoppingUrl = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(query)}&gl=in&google_domain=google.co.in&hl=en&num=40&api_key=${apiKey}`;
-              
-              console.log(`[SEARCH] Shopping API fallback for ${category}`);
-              
-              const shoppingResponse = await fetch(shoppingUrl);
-              if (!shoppingResponse.ok) {
-                console.error(`[SEARCH] Shopping API failed for ${category}`);
-                return { category, items: [] };
-              }
-
-              const shoppingData = await shoppingResponse.json();
-              const shoppingResults = shoppingData.shopping_results || [];
-              
-              console.log(`[SEARCH] Shopping API returned ${shoppingResults.length} results for ${category}`);
-              
-              // Debug: Log first 3 results to see what we're getting
-              if (shoppingResults.length > 0 && category === 'upper') {
-                console.log(`[SEARCH] Sample Shopping results for ${category}:`);
-                shoppingResults.slice(0, 3).forEach((item: any, idx: number) => {
-                  try {
-                    const hostname = new URL(item.link || '').hostname;
-                    console.log(`  ${idx + 1}. Title: "${item.title}", Link: ${hostname}`);
-                  } catch {
-                    console.log(`  ${idx + 1}. Title: "${item.title}", Link: [invalid URL]`);
-                  }
-                });
-              }
-              
-              // Filter by Indian merchants and categorize
-              let merchantFiltered = 0;
-              let categoryFiltered = 0;
-              
-              const validItems = shoppingResults
-                .filter((item: any) => {
-                  const source = item.source || '';
-                  if (!isIndianMerchant(source)) {
-                    merchantFiltered++;
-                    return false;
-                  }
-                  
-                  const cat = categorizeProduct(item.title || '');
-                  if (cat !== category) {
-                    categoryFiltered++;
-                    return false;
-                  }
-                  
-                  return true;
-                })
-                .map((item: any) => ({
-                  ...item,
-                  link: item.product_link || item.link || '#' // Use product_link (Google Shopping page)
-                }))
-                .slice(0, 10 - categorized[category].length); // Only take what we need
-
-              console.log(`[SEARCH] ${category} filtering: ${merchantFiltered} failed merchant check, ${categoryFiltered} failed category check, ${validItems.length} valid`);
-              
-              return { category, items: validItems };
-            } catch (error: any) {
-              console.error(`[SEARCH] Shopping API error for ${category}:`, error.message);
-              return { category, items: [] };
+          // Filter for Indian merchants and add to categorized results
+          for (const item of visualMatches) {
+            const source = item.source || '';
+            if (isIndianMerchant(source)) {
+              categorized[garment.category].push(item);
             }
-          })
-        );
-
-        // Merge shopping results with categorized results
-        shoppingFallbacks.forEach(({ category, items }) => {
-          categorized[category].push(...items);
-        });
-
-        console.log(`[SEARCH] After Shopping fallback - Upper: ${categorized.upper.length}, Lower: ${categorized.lower.length}, Footwear: ${categorized.footwear.length}, Accessories: ${categorized.accessories.length}`);
+          }
+        } catch (error: any) {
+          console.error(`[SEARCH] Error searching for ${garment.className}:`, error.message);
+        }
       }
+
+      console.log(`[SEARCH] Results - Upper: ${categorized.upper.length}, Lower: ${categorized.lower.length}, Footwear: ${categorized.footwear.length}, Accessories: ${categorized.accessories.length}`)
 
       // Build final results - top 10 per category
       const results: ProductSearchResponse = {
