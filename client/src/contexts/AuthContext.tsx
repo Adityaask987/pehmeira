@@ -30,17 +30,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (response.ok) {
-          const userData = await response.json();
-          setUser(userData);
+          try {
+            const userData = await response.json();
+            setUser(userData);
+          } catch (jsonError: any) {
+            console.error("[AUTH] Failed to parse refreshed user data:", jsonError);
+            toast({
+              title: "Data Error",
+              description: "Received invalid user data. Please sign in again.",
+              variant: "destructive",
+            });
+            setUser(null);
+          }
+        } else if (response.status === 404) {
+          // User not found in database - recreate them (mirrors onAuthChange behavior)
+          console.log("[AUTH] User not found during refresh, recreating...");
+          const createResponse = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              name: firebaseUser.displayName,
+              profilePicture: firebaseUser.photoURL,
+            }),
+          });
+
+          if (createResponse.ok) {
+            try {
+              const userData = await createResponse.json();
+              setUser(userData);
+              console.log("[AUTH] User recreated successfully during refresh:", userData.id);
+              toast({
+                title: "Session Restored",
+                description: "Your account has been restored successfully.",
+                variant: "default",
+              });
+            } catch (jsonError: any) {
+              console.error("[AUTH] Failed to parse recreated user data:", jsonError);
+              toast({
+                title: "Data Error",
+                description: "Account recreated but received invalid response. Please refresh the page.",
+                variant: "destructive",
+              });
+              setUser(null);
+            }
+          } else {
+            const errorData = await createResponse.json().catch(() => ({ message: "Unknown error" }));
+            console.error("[AUTH] Failed to recreate user during refresh:", errorData);
+            toast({
+              title: "Account Recreation Failed",
+              description: `Failed to restore your account: ${errorData.message}. Please sign in again.`,
+              variant: "destructive",
+            });
+            setUser(null);
+          }
         } else {
-          console.error("[AUTH] Failed to refresh user data");
+          // Non-404 error during refresh (500, etc.)
+          const errorData = await response.json().catch(() => ({ message: "Refresh failed" }));
+          console.error("[AUTH] Failed to refresh user data:", { status: response.status, error: errorData });
+          toast({
+            title: "Session Refresh Error",
+            description: errorData.message || "Unable to refresh your session. Please sign in again.",
+            variant: "destructive",
+          });
           setUser(null);
         }
       } catch (error: any) {
         console.error("[AUTH] Error fetching user:", error);
         toast({
           title: "Session Error",
-          description: "Unable to refresh your session. Please sign in again.",
+          description: `Unable to refresh your session: ${error.message}. Please sign in again.`,
           variant: "destructive",
         });
         setUser(null);
@@ -98,11 +161,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const userData = await createResponse.json();
                 setUser(userData);
                 console.log("[AUTH] User created successfully:", userData.id);
+                toast({
+                  title: "Welcome to Pehmeira",
+                  description: "Your account has been created successfully.",
+                  variant: "default",
+                });
               } catch (jsonError: any) {
                 console.error("[AUTH] Failed to parse created user data:", jsonError);
                 toast({
                   title: "Data Error",
-                  description: "User created but received invalid response. Please refresh the page.",
+                  description: "Account created but received invalid response. Please refresh the page.",
                   variant: "destructive",
                 });
                 setUser(null);
@@ -122,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error("[AUTH] Database sync error:", { status: response.status, error: errorData });
             toast({
               title: "Database Sync Error",
-              description: `Unable to sync your session with the database. Please refresh the page or sign in again.`,
+              description: errorData.message || "Unable to sync your session with the database. Please refresh the page or sign in again.",
               variant: "destructive",
             });
           }

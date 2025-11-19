@@ -145,9 +145,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: error.message || "Failed to retrieve user data"
       };
       
+      // Include full diagnostics in development
       if (process.env.NODE_ENV === "development") {
+        response.code = error.code || error.pgCode;
+        response.detail = error.detail || error.pgDetail;
+        response.hint = error.hint || error.pgHint;
         response.stack = error.stack;
-        response.code = error.code;
       }
       
       res.status(500).json(response);
