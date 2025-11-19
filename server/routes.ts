@@ -280,6 +280,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'meesho.com'
       ];
 
+      // Indian e-commerce merchant names (for Shopping API source field)
+      const indianMerchants = [
+        'amazon',
+        'flipkart',
+        'myntra',
+        'ajio',
+        'meesho'
+      ];
+
       // Keyword taxonomy for precise categorization
       const categoryKeywords = {
         upper: {
@@ -321,6 +330,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch {
           return false;
         }
+      };
+
+      // Function to check if source is from Indian merchant (for Shopping API)
+      const isIndianMerchant = (source: string): boolean => {
+        const lowerSource = source.toLowerCase();
+        return indianMerchants.some(merchant => lowerSource.includes(merchant));
       };
 
       // Function to categorize product based on title
@@ -427,6 +442,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[SEARCH] Processed ${processedCount} items, ${indianSiteCount} from Indian sites, ${categorizedCount} categorized`);
       console.log(`[SEARCH] Upper: ${categorized.upper.length}, Lower: ${categorized.lower.length}, Footwear: ${categorized.footwear.length}, Accessories: ${categorized.accessories.length}`);
+
+      // Fallback: Use Google Shopping API for categories with < 10 results
+      const categoryQueries = {
+        upper: `women top shirt blouse kurti`,
+        lower: `women pants jeans skirt leggings`,
+        footwear: `women shoes heels boots sandals`,
+        accessories: `women jewelry necklace bracelet watch bag`
+      };
+
+      const categoriesToFallback: Array<'upper' | 'lower' | 'footwear' | 'accessories'> = [];
+      
+      if (categorized.upper.length < 10) categoriesToFallback.push('upper');
+      if (categorized.lower.length < 10) categoriesToFallback.push('lower');
+      if (categorized.footwear.length < 10) categoriesToFallback.push('footwear');
+      if (categorized.accessories.length < 10) categoriesToFallback.push('accessories');
+
+      if (categoriesToFallback.length > 0) {
+        console.log(`[SEARCH] Falling back to Google Shopping API for categories:`, categoriesToFallback);
+        
+        const shoppingFallbacks = await Promise.all(
+          categoriesToFallback.map(async (category) => {
+            try {
+              const query = categoryQueries[category];
+              const shoppingUrl = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(query)}&gl=in&google_domain=google.co.in&hl=en&num=40&api_key=${apiKey}`;
+              
+              console.log(`[SEARCH] Shopping API fallback for ${category}`);
+              
+              const shoppingResponse = await fetch(shoppingUrl);
+              if (!shoppingResponse.ok) {
+                console.error(`[SEARCH] Shopping API failed for ${category}`);
+                return { category, items: [] };
+              }
+
+              const shoppingData = await shoppingResponse.json();
+              const shoppingResults = shoppingData.shopping_results || [];
+              
+              console.log(`[SEARCH] Shopping API returned ${shoppingResults.length} results for ${category}`);
+              
+              // Debug: Log first 3 results to see what we're getting
+              if (shoppingResults.length > 0 && category === 'upper') {
+                console.log(`[SEARCH] Sample Shopping results for ${category}:`);
+                shoppingResults.slice(0, 3).forEach((item: any, idx: number) => {
+                  try {
+                    const hostname = new URL(item.link || '').hostname;
+                    console.log(`  ${idx + 1}. Title: "${item.title}", Link: ${hostname}`);
+                  } catch {
+                    console.log(`  ${idx + 1}. Title: "${item.title}", Link: [invalid URL]`);
+                  }
+                });
+              }
+              
+              // Filter by Indian merchants and categorize
+              let merchantFiltered = 0;
+              let categoryFiltered = 0;
+              
+              const validItems = shoppingResults
+                .filter((item: any) => {
+                  const source = item.source || '';
+                  if (!isIndianMerchant(source)) {
+                    merchantFiltered++;
+                    return false;
+                  }
+                  
+                  const cat = categorizeProduct(item.title || '');
+                  if (cat !== category) {
+                    categoryFiltered++;
+                    return false;
+                  }
+                  
+                  return true;
+                })
+                .map((item: any) => ({
+                  ...item,
+                  link: item.product_link || item.link || '#' // Use product_link (Google Shopping page)
+                }))
+                .slice(0, 10 - categorized[category].length); // Only take what we need
+
+              console.log(`[SEARCH] ${category} filtering: ${merchantFiltered} failed merchant check, ${categoryFiltered} failed category check, ${validItems.length} valid`);
+              
+              return { category, items: validItems };
+            } catch (error: any) {
+              console.error(`[SEARCH] Shopping API error for ${category}:`, error.message);
+              return { category, items: [] };
+            }
+          })
+        );
+
+        // Merge shopping results with categorized results
+        shoppingFallbacks.forEach(({ category, items }) => {
+          categorized[category].push(...items);
+        });
+
+        console.log(`[SEARCH] After Shopping fallback - Upper: ${categorized.upper.length}, Lower: ${categorized.lower.length}, Footwear: ${categorized.footwear.length}, Accessories: ${categorized.accessories.length}`);
+      }
 
       // Build final results - top 10 per category
       const results: ProductSearchResponse = {
