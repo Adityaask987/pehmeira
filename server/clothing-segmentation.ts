@@ -40,9 +40,10 @@ export async function detectClothing(imageUrl: string): Promise<SegmentationResu
 
       console.log(`[ROBOFLOW] Detecting clothing in image: ${imageUrl}`);
 
-      // Using Roboflow's clothing detection model
-      // Model: clothing-jr7a4/clothing-detection-s4ioc
-      const modelEndpoint = `https://detect.roboflow.com/clothing-detection-s4ioc/4`;
+      // Using custom Roboflow model for Indian fashion
+      // Workspace: aditya-singh-kshatriya-r3kpr
+      // Model: find-lower-body-clothes-upper-body-clothes-shoes-and-jewellery-and-bags-and-watches
+      const modelEndpoint = `https://detect.roboflow.com/find-lower-body-clothes-upper-body-clothes-shoes-and-jewellery-and-bags-and-watches/1`;
 
       const response = await axios({
         method: "POST",
@@ -79,67 +80,55 @@ export async function detectClothing(imageUrl: string): Promise<SegmentationResu
 
 /**
  * Categorize detected clothing items into searchable categories
+ * Maps custom Roboflow model classes to product categories
+ * 
+ * Model classes:
+ * - "upper body clothes"
+ * - "lower body clothes"
+ * - "shoes"
+ * - "jewelleries and bags and watches"
  */
 export function categorizeDetection(className: string): "upper" | "lower" | "footwear" | "accessories" | null {
   const lowerClass = className.toLowerCase();
 
-  // Upper body
+  // Direct mapping for custom model classes
+  if (lowerClass.includes("upper body") || lowerClass.includes("upper-body")) {
+    return "upper";
+  }
+
+  if (lowerClass.includes("lower body") || lowerClass.includes("lower-body")) {
+    return "lower";
+  }
+
+  if (lowerClass.includes("shoe")) {
+    return "footwear";
+  }
+
+  if (lowerClass.includes("jeweller") || lowerClass.includes("bag") || lowerClass.includes("watch")) {
+    return "accessories";
+  }
+
+  // Fallback: try generic patterns
   if (
     lowerClass.includes("shirt") ||
     lowerClass.includes("top") ||
     lowerClass.includes("blouse") ||
     lowerClass.includes("jacket") ||
-    lowerClass.includes("coat") ||
-    lowerClass.includes("sweater") ||
-    lowerClass.includes("hoodie") ||
-    lowerClass.includes("dress") ||
-    lowerClass.includes("kurti") ||
-    lowerClass.includes("saree")
+    lowerClass.includes("kurti")
   ) {
     return "upper";
   }
 
-  // Lower body
   if (
     lowerClass.includes("pant") ||
-    lowerClass.includes("trouser") ||
     lowerClass.includes("jeans") ||
-    lowerClass.includes("short") ||
     lowerClass.includes("skirt") ||
-    lowerClass.includes("legging") ||
-    lowerClass.includes("salwar") ||
-    lowerClass.includes("dhoti")
+    lowerClass.includes("legging")
   ) {
     return "lower";
   }
 
-  // Footwear
-  if (
-    lowerClass.includes("shoe") ||
-    lowerClass.includes("sneaker") ||
-    lowerClass.includes("boot") ||
-    lowerClass.includes("sandal") ||
-    lowerClass.includes("heel") ||
-    lowerClass.includes("slipper")
-  ) {
-    return "footwear";
-  }
-
-  // Accessories
-  if (
-    lowerClass.includes("bag") ||
-    lowerClass.includes("purse") ||
-    lowerClass.includes("hat") ||
-    lowerClass.includes("cap") ||
-    lowerClass.includes("sunglasses") ||
-    lowerClass.includes("watch") ||
-    lowerClass.includes("scarf") ||
-    lowerClass.includes("belt") ||
-    lowerClass.includes("jewelry")
-  ) {
-    return "accessories";
-  }
-
+  console.log(`[CATEGORIZE] Unknown class: ${className}`);
   return null;
 }
 

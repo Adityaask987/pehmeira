@@ -8,14 +8,16 @@ A premium web-based fashion styling application that provides personalized outfi
 **Last Updated**: October 23, 2025
 
 ## Recent Changes
-- **November 19, 2025**: FREE Clothing Segmentation for Accurate Product Matching
-  - **Replaced Gemini AI with FREE Roboflow clothing detection** (no cost, unlimited usage on free tier)
+- **November 19, 2025**: Custom Roboflow Model for Indian Fashion Segmentation
+  - **Custom Model**: Using user's trained Roboflow model specifically for Indian fashion styles
+  - **Model Details**: `aditya-singh-kshatriya-r3kpr/find-lower-body-clothes-upper-body-clothes-shoes-and-jewellery-and-bags-and-watches/1`
+  - **Detection Classes**: "upper body clothes", "lower body clothes", "shoes", "jewelleries and bags and watches"
   - **Clothing Segmentation Approach**: Detects individual garments (tops, bottoms, shoes, accessories) in style images
   - **Per-Garment Search**: Each detected clothing item is cropped and searched separately via Google Lens
   - **Accuracy Improvement**: Searches individual garments instead of full image = much better product matches
-  - **Implementation**: Roboflow API → Crop garments → Google Lens per crop → Categorized results
-  - **Robust Fallback**: If Roboflow fails (403/errors), automatically falls back to Google Shopping API
-  - **No AI costs**: Removed expensive Gemini integration, using free Roboflow tier instead
+  - **Implementation**: Custom Roboflow API → Crop garments → Google Lens per crop → Categorized results
+  - **Robust Fallback**: If Roboflow fails, automatically falls back to Google Shopping API with category queries
+  - **No AI costs**: Using FREE Roboflow tier (unlimited inference on free plan)
   - **Rate limiting**: Max 3 concurrent Roboflow requests using p-limit
   - **Image processing**: Sharp library for precise garment cropping from bounding boxes
   - **Workflow**: Style image → Detect clothing → Crop regions → Search each → Filter Indian merchants → Return 10 products/category
