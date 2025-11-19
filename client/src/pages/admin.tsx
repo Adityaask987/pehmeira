@@ -567,11 +567,11 @@ export default function AdminPage() {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={!firebaseUser || createMutation.isPending || updateMutation.isPending || isUnauthorized}
+                    disabled={!firebaseUser || createMutation.isPending || updateMutation.isPending || isUnauthorized || uploadingImage}
                     className="bg-gold text-white hover:bg-gold/90"
                     data-testid="button-submit"
                   >
-                    {editingStyle ? "Update" : "Create"}
+                    {uploadingImage ? "Uploading..." : editingStyle ? "Update" : "Create"}
                   </Button>
                 </div>
               </form>
