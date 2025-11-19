@@ -55,12 +55,11 @@ export default function Onboarding() {
     setStep("bodyType");
   };
 
-  const handleBodyTypeSelect = (bodyType: BodyType) => {
+  const handleBodyTypeSelect = async (bodyType: BodyType) => {
     setSelectedBodyType(bodyType);
-  };
-
-  const handleContinue = async () => {
-    if (selectedBodyType && selectedGender) {
+    
+    // Automatically proceed to next screen after selection
+    if (selectedGender) {
       try {
         const response = await fetch("/api/users", {
           method: "POST",
@@ -68,14 +67,14 @@ export default function Onboarding() {
           body: JSON.stringify({
             username: `user_${Date.now()}`,
             gender: selectedGender,
-            bodyType: selectedBodyType.id,
+            bodyType: bodyType.id,
           }),
         });
         
         const user = await response.json();
         localStorage.setItem("userId", user.id);
         localStorage.setItem("userGender", selectedGender);
-        localStorage.setItem("userBodyType", selectedBodyType.id);
+        localStorage.setItem("userBodyType", bodyType.id);
         setLocation("/occasions");
       } catch (error) {
         console.error("Error creating user:", error);
@@ -165,19 +164,6 @@ export default function Onboarding() {
                 />
               ))}
             </div>
-
-            {selectedBodyType && (
-              <div className="flex justify-center">
-                <Button
-                  size="lg"
-                  onClick={handleContinue}
-                  className="px-12 font-display tracking-wide text-base"
-                  data-testid="button-continue"
-                >
-                  CONTINUE
-                </Button>
-              </div>
-            )}
           </div>
         )}
       </div>
