@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import pLimit from "p-limit";
 
 // Using Replit's AI Integrations service for Gemini
 const ai = new GoogleGenAI({
@@ -8,6 +9,9 @@ const ai = new GoogleGenAI({
     baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL || "",
   },
 });
+
+// Rate limiter: max 3 concurrent image analysis requests
+const analysisLimit = pLimit(3);
 
 export interface ImageAnalysis {
   dominantColors: string[]; // Array of color names like ['black', 'red', 'gold']
@@ -19,22 +23,24 @@ export interface ImageAnalysis {
 
 /**
  * Analyze an image to extract color and pattern information using Gemini Vision
+ * Rate-limited to prevent overwhelming the API
  */
 export async function analyzeImage(imageUrl: string): Promise<ImageAnalysis> {
-  try {
-    console.log(`[IMAGE_ANALYSIS] Analyzing image: ${imageUrl}`);
-    
-    // Fetch the image and convert to base64
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
-    }
-    
-    const imageBuffer = await imageResponse.arrayBuffer();
-    const base64Image = Buffer.from(imageBuffer).toString('base64');
-    const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
-    
-    const prompt = `Analyze this fashion/clothing image and provide detailed color and pattern information.
+  return analysisLimit(async () => {
+    try {
+      console.log(`[IMAGE_ANALYSIS] Analyzing image: ${imageUrl}`);
+      
+      // Fetch the image and convert to base64
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+      }
+      
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const base64Image = Buffer.from(imageBuffer).toString('base64');
+      const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      
+      const prompt = `Analyze this fashion/clothing image and provide detailed color and pattern information.
 
 Extract the following in JSON format:
 {
@@ -48,29 +54,30 @@ Extract the following in JSON format:
 Be precise with colors - use specific names like "burgundy", "navy blue", "golden yellow" rather than just "red", "blue", "yellow".
 For patterns, be detailed - describe the type, size, and arrangement of the pattern.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [{
-        role: "user",
-        parts: [
-          { text: prompt },
-          { inlineData: { mimeType, data: base64Image } }
-        ]
-      }],
-      config: {
-        responseMimeType: "application/json"
-      }
-    });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{
+          role: "user",
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType, data: base64Image } }
+          ]
+        }],
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
 
-    const analysisText = response.text || "{}";
-    const analysis: ImageAnalysis = JSON.parse(analysisText);
-    
-    console.log(`[IMAGE_ANALYSIS] Result:`, analysis);
-    return analysis;
-  } catch (error: any) {
-    console.error(`[IMAGE_ANALYSIS] Error:`, error.message);
-    throw error;
-  }
+      const analysisText = response.text || "{}";
+      const analysis: ImageAnalysis = JSON.parse(analysisText);
+      
+      console.log(`[IMAGE_ANALYSIS] Result:`, analysis);
+      return analysis;
+    } catch (error: any) {
+      console.error(`[IMAGE_ANALYSIS] Error:`, error.message);
+      throw error;
+    }
+  });
 }
 
 /**

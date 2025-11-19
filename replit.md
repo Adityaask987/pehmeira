@@ -8,6 +8,15 @@ A premium web-based fashion styling application that provides personalized outfi
 **Last Updated**: October 23, 2025
 
 ## Recent Changes
+- **November 19, 2025**: AI-Powered Color and Pattern Matching
+  - Integrated Gemini AI for style image analysis (color extraction and pattern detection)
+  - Enhanced Google Shopping search queries with color and pattern keywords from analyzed styles
+  - Products now match style aesthetics through intelligent query enhancement (e.g., "black floral kurti")
+  - Practical approach: analyze style once, enhance all queries (fast and cost-effective)
+  - Rate-limited image analysis (max 3 concurrent requests) using p-limit
+  - Color matching uses dominant color extraction with color family recognition
+  - Pattern matching identifies solid, floral, striped, geometric, etc. patterns
+  - No per-product analysis (too expensive) - relies on enhanced search queries instead
 - **November 14, 2025**: Migrated to Supabase for Production Deployment
   - Migrated database from Replit PostgreSQL to Supabase PostgreSQL
   - Replaced local file storage (multer) with Supabase Storage for image uploads
