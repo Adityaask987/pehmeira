@@ -271,73 +271,210 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? style.image 
         : `${req.protocol}://${req.get('host')}${style.image}`;
 
-      const searchQueries = {
-        upper: `${style.gender} top blouse shirt`,
-        lower: `${style.gender} pants skirt bottoms`,
-        accessories: `${style.gender} accessories jewelry bag`,
-        footwear: `${style.gender} shoes heels boots`
-      };
+      // Indian e-commerce domain whitelist
+      const indianDomains = [
+        'amazon.in',
+        'flipkart.com',
+        'myntra.com',
+        'ajio.com',
+        'meesho.com'
+      ];
 
-      const categories = ['upper', 'lower', 'accessories', 'footwear'] as const;
-      const results: ProductSearchResponse = {
-        upper: [],
-        lower: [],
-        accessories: [],
-        footwear: []
-      };
-
-      const fetchCategoryProducts = async (category: typeof categories[number]) => {
-        try {
-          const apiUrl = `https://serpapi.com/search.json?engine=google_lens&url=${encodeURIComponent(imageUrl)}&api_key=${apiKey}`;
-          console.log(`[SEARCH] Fetching ${category} products`);
-          console.log(`[SEARCH] Image URL:`, imageUrl);
-          
-          const lensResponse = await fetch(apiUrl);
-          
-          if (!lensResponse.ok) {
-            const errorText = await lensResponse.text();
-            console.error(`[SEARCH] Failed ${category}:`, lensResponse.statusText);
-            console.error(`[SEARCH] Error details:`, errorText);
-            return { category, products: [] };
-          }
-
-          const lensData = await lensResponse.json();
-          console.log(`[SEARCH] ${category} response:`, JSON.stringify(lensData, null, 2).substring(0, 500));
-          
-          if (lensData.error) {
-            console.error(`[SEARCH] SerpAPI error for ${category}:`, lensData.error);
-            return { category, products: [] };
-          }
-          
-          const visualMatches = lensData.visual_matches || [];
-          console.log(`[SEARCH] ${category} visual_matches count:`, visualMatches.length);
-          
-          const products = visualMatches.slice(0, 10).map((item: any, index: number): SearchedProduct => ({
-            title: item.title || 'Untitled Product',
-            price: item.price?.value || item.price || 'Price not available',
-            source: item.source || 'Unknown',
-            link: item.link || '#',
-            thumbnail: item.thumbnail || item.image || '',
-            category: category,
-            rating: item.rating,
-            reviews: item.reviews,
-            matchPercentage: 98 - (index * 3)
-          }));
-
-          return { category, products };
-        } catch (error: any) {
-          console.error(`[SEARCH] Error fetching ${category} products:`, error.message);
-          return { category, products: [] };
+      // Keyword taxonomy for precise categorization
+      const categoryKeywords = {
+        upper: {
+          include: ['top', 'shirt', 'blouse', 'tshirt', 't-shirt', 'kurti', 'kurta', 'tunic', 'sweater', 
+                   'jacket', 'blazer', 'cardigan', 'hoodie', 'sweatshirt', 'crop', 'tank', 'cami', 
+                   'polo', 'button', 'sleeve', 'collar', 'bodice'],
+          exclude: ['pant', 'jean', 'trouser', 'skirt', 'short', 'legging', 'shoe', 'boot', 'sandal', 
+                   'sneaker', 'heel', 'bag', 'watch', 'necklace', 'bracelet', 'ring', 'earring']
+        },
+        lower: {
+          include: ['pant', 'jean', 'trouser', 'skirt', 'short', 'legging', 'jogger', 'track', 
+                   'palazzo', 'salwar', 'dhoti', 'capri', 'culottes', 'chino', 'cargo', 'denim'],
+          exclude: ['top', 'shirt', 'blouse', 'shoe', 'boot', 'sandal', 'sneaker', 'heel', 
+                   'bag', 'watch', 'necklace', 'bracelet', 'jacket', 'sweater']
+        },
+        footwear: {
+          include: ['shoe', 'boot', 'sandal', 'sneaker', 'heel', 'slipper', 'flip', 'flop', 
+                   'loafer', 'oxford', 'derby', 'moccasin', 'wedge', 'pump', 'stiletto', 
+                   'ankle boot', 'chelsea', 'trainer', 'runner', 'kicks'],
+          exclude: ['shirt', 'pant', 'skirt', 'bag', 'watch', 'necklace', 'bracelet', 'ring']
+        },
+        accessories: {
+          include: ['bag', 'watch', 'necklace', 'bracelet', 'ring', 'earring', 'jewel', 'jewelry', 
+                   'pendant', 'chain', 'bangle', 'anklet', 'brooch', 'scarf', 'stole', 'belt', 
+                   'wallet', 'purse', 'clutch', 'handbag', 'sling', 'tote', 'backpack', 'sunglass'],
+          exclude: ['shoe', 'boot', 'sandal', 'sneaker', 'shirt', 'pant', 'skirt', 'jean']
         }
       };
 
-      const categoryResults = await Promise.all(
-        categories.map(category => fetchCategoryProducts(category))
-      );
+      // Function to check if URL is from Indian e-commerce
+      const isIndianEcommerce = (url: string): boolean => {
+        try {
+          const hostname = new URL(url).hostname.toLowerCase();
+          return indianDomains.some(domain => 
+            hostname === domain || 
+            hostname.endsWith(`.${domain}`) ||
+            hostname.includes(domain)
+          );
+        } catch {
+          return false;
+        }
+      };
 
-      categoryResults.forEach(({ category, products }) => {
-        results[category] = products;
-      });
+      // Function to categorize product based on title
+      const categorizeProduct = (title: string): 'upper' | 'lower' | 'footwear' | 'accessories' | null => {
+        const lowerTitle = title.toLowerCase();
+        
+        type Category = 'upper' | 'lower' | 'footwear' | 'accessories';
+        const categories: Category[] = ['upper', 'lower', 'footwear', 'accessories'];
+        
+        // Score each category
+        const scores: Record<Category, number> = {
+          upper: 0,
+          lower: 0,
+          footwear: 0,
+          accessories: 0
+        };
+
+        for (const category of categories) {
+          const keywords = categoryKeywords[category];
+          
+          // Add points for include keywords
+          for (const keyword of keywords.include) {
+            if (lowerTitle.includes(keyword)) {
+              scores[category] += 10;
+            }
+          }
+          
+          // Subtract points for exclude keywords (stronger penalty)
+          for (const keyword of keywords.exclude) {
+            if (lowerTitle.includes(keyword)) {
+              scores[category] -= 50;
+            }
+          }
+        }
+
+        // Find category with highest score (must be positive)
+        let bestCategory: Category | null = null;
+        let bestScore = 0;
+
+        for (const category of categories) {
+          if (scores[category] > bestScore) {
+            bestScore = scores[category];
+            bestCategory = category;
+          }
+        }
+
+        return bestScore > 0 ? bestCategory : null;
+      };
+
+      // Make ONE API call with India parameters
+      const apiUrl = `https://serpapi.com/search.json?engine=google_lens&url=${encodeURIComponent(imageUrl)}&gl=in&hl=en&api_key=${apiKey}`;
+      console.log(`[SEARCH] Fetching products for India market`);
+      console.log(`[SEARCH] Image URL:`, imageUrl);
+      
+      const lensResponse = await fetch(apiUrl);
+      
+      if (!lensResponse.ok) {
+        const errorText = await lensResponse.text();
+        console.error(`[SEARCH] Failed:`, lensResponse.statusText);
+        console.error(`[SEARCH] Error details:`, errorText);
+        return res.status(500).json({ message: "Failed to fetch products from Google Lens" });
+      }
+
+      const lensData = await lensResponse.json();
+      console.log(`[SEARCH] Total visual_matches:`, (lensData.visual_matches || []).length);
+      
+      if (lensData.error) {
+        console.error(`[SEARCH] SerpAPI error:`, lensData.error);
+        return res.status(500).json({ message: lensData.error });
+      }
+      
+      const visualMatches = lensData.visual_matches || [];
+      
+      // Categorize and filter all products
+      const categorized: Record<'upper' | 'lower' | 'footwear' | 'accessories', any[]> = {
+        upper: [],
+        lower: [],
+        footwear: [],
+        accessories: []
+      };
+
+      let processedCount = 0;
+      let indianSiteCount = 0;
+      let categorizedCount = 0;
+
+      for (const item of visualMatches) {
+        processedCount++;
+        
+        // Filter 1: Must be from Indian e-commerce
+        if (!isIndianEcommerce(item.link || '')) {
+          continue;
+        }
+        indianSiteCount++;
+
+        // Filter 2: Must be categorizable
+        const category = categorizeProduct(item.title || '');
+        if (!category) {
+          continue;
+        }
+        categorizedCount++;
+
+        categorized[category].push(item);
+      }
+
+      console.log(`[SEARCH] Processed ${processedCount} items, ${indianSiteCount} from Indian sites, ${categorizedCount} categorized`);
+      console.log(`[SEARCH] Upper: ${categorized.upper.length}, Lower: ${categorized.lower.length}, Footwear: ${categorized.footwear.length}, Accessories: ${categorized.accessories.length}`);
+
+      // Build final results - top 10 per category
+      const results: ProductSearchResponse = {
+        upper: categorized.upper.slice(0, 10).map((item, index): SearchedProduct => ({
+          title: item.title || 'Untitled Product',
+          price: item.price?.value || item.price || 'Price not available',
+          source: item.source || 'Unknown',
+          link: item.link || '#',
+          thumbnail: item.thumbnail || item.image || '',
+          category: 'upper',
+          rating: item.rating,
+          reviews: item.reviews,
+          matchPercentage: 98 - (index * 3)
+        })),
+        lower: categorized.lower.slice(0, 10).map((item, index): SearchedProduct => ({
+          title: item.title || 'Untitled Product',
+          price: item.price?.value || item.price || 'Price not available',
+          source: item.source || 'Unknown',
+          link: item.link || '#',
+          thumbnail: item.thumbnail || item.image || '',
+          category: 'lower',
+          rating: item.rating,
+          reviews: item.reviews,
+          matchPercentage: 98 - (index * 3)
+        })),
+        footwear: categorized.footwear.slice(0, 10).map((item, index): SearchedProduct => ({
+          title: item.title || 'Untitled Product',
+          price: item.price?.value || item.price || 'Price not available',
+          source: item.source || 'Unknown',
+          link: item.link || '#',
+          thumbnail: item.thumbnail || item.image || '',
+          category: 'footwear',
+          rating: item.rating,
+          reviews: item.reviews,
+          matchPercentage: 98 - (index * 3)
+        })),
+        accessories: categorized.accessories.slice(0, 10).map((item, index): SearchedProduct => ({
+          title: item.title || 'Untitled Product',
+          price: item.price?.value || item.price || 'Price not available',
+          source: item.source || 'Unknown',
+          link: item.link || '#',
+          thumbnail: item.thumbnail || item.image || '',
+          category: 'accessories',
+          rating: item.rating,
+          reviews: item.reviews,
+          matchPercentage: 98 - (index * 3)
+        }))
+      };
 
       res.json(results);
     } catch (error: any) {
