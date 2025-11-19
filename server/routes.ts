@@ -5,6 +5,7 @@ import { insertUserSchema, insertWishlistItemSchema, updateUserProfileSchema, ty
 import { fetchRetailProducts, fetchProductById, findSimilarProducts } from "./retail-api";
 import admin from "firebase-admin";
 import { registerAdminRoutes } from "./admin";
+import { analyzeImage, calculateColorSimilarity, calculatePatternSimilarity, type ImageAnalysis } from "./image-analysis";
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -271,6 +272,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? style.image 
         : `${req.protocol}://${req.get('host')}${style.image}`;
 
+      // Analyze the style image for color and pattern
+      console.log(`[IMAGE_ANALYSIS] Analyzing style image for color and pattern matching...`);
+      let styleAnalysis: ImageAnalysis | null = null;
+      
+      try {
+        styleAnalysis = await analyzeImage(imageUrl);
+        console.log(`[IMAGE_ANALYSIS] Style image analysis:`, {
+          colors: styleAnalysis.dominantColors,
+          pattern: styleAnalysis.pattern,
+          garmentType: styleAnalysis.garmentType
+        });
+      } catch (error: any) {
+        console.error(`[IMAGE_ANALYSIS] Failed to analyze style image:`, error.message);
+        // Continue without color/pattern matching if analysis fails
+      }
+
+      // Color and pattern similarity thresholds
+      const COLOR_SIMILARITY_THRESHOLD = 75; // 75% color matching required
+      const PATTERN_SIMILARITY_THRESHOLD = 60; // 60% pattern matching required
+
       // Indian e-commerce domain whitelist
       const indianDomains = [
         'amazon.in',
@@ -409,6 +430,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const visualMatches = lensData.visual_matches || [];
       
+      // Helper function to check if product matches color and pattern
+      const matchesColorPattern = async (productThumbnail: string): Promise<{ matches: boolean, colorSimilarity: number, patternSimilarity: number }> => {
+        if (!styleAnalysis) {
+          // If style analysis failed, accept all products
+          return { matches: true, colorSimilarity: 100, patternSimilarity: 100 };
+        }
+
+        try {
+          // Analyze product image
+          const productAnalysis = await analyzeImage(productThumbnail);
+          
+          // Calculate similarities
+          const colorSimilarity = calculateColorSimilarity(
+            styleAnalysis.dominantColors,
+            productAnalysis.dominantColors
+          );
+          
+          const patternSimilarity = calculatePatternSimilarity(
+            styleAnalysis.pattern,
+            styleAnalysis.patternDetails,
+            productAnalysis.pattern,
+            productAnalysis.patternDetails
+          );
+
+          const matches = colorSimilarity >= COLOR_SIMILARITY_THRESHOLD && 
+                         patternSimilarity >= PATTERN_SIMILARITY_THRESHOLD;
+
+          console.log(`[MATCH] Color: ${colorSimilarity}%, Pattern: ${patternSimilarity}% - ${matches ? 'PASS' : 'FAIL'}`);
+          
+          return { matches, colorSimilarity, patternSimilarity };
+        } catch (error: any) {
+          console.error(`[MATCH] Analysis failed:`, error.message);
+          // On error, accept the product (fail open)
+          return { matches: true, colorSimilarity: 0, patternSimilarity: 0 };
+        }
+      };
+
       // Categorize and filter all products
       const categorized: Record<'upper' | 'lower' | 'footwear' | 'accessories', any[]> = {
         upper: [],
@@ -420,6 +478,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let processedCount = 0;
       let indianSiteCount = 0;
       let categorizedCount = 0;
+      let colorPatternMatchCount = 0;
 
       for (const item of visualMatches) {
         processedCount++;
@@ -437,10 +496,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         categorizedCount++;
 
+        // Filter 3: Must match color and pattern (if analysis succeeded)
+        if (styleAnalysis && item.thumbnail) {
+          const { matches, colorSimilarity, patternSimilarity } = await matchesColorPattern(item.thumbnail);
+          
+          if (!matches) {
+            console.log(`[FILTER] Rejected "${item.title}" - Color: ${colorSimilarity}%, Pattern: ${patternSimilarity}%`);
+            continue;
+          }
+          
+          colorPatternMatchCount++;
+          // Store similarity scores for later use
+          item.colorSimilarity = colorSimilarity;
+          item.patternSimilarity = patternSimilarity;
+        }
+
         categorized[category].push(item);
       }
 
-      console.log(`[SEARCH] Processed ${processedCount} items, ${indianSiteCount} from Indian sites, ${categorizedCount} categorized`);
+      console.log(`[SEARCH] Processed ${processedCount} items, ${indianSiteCount} from Indian sites, ${categorizedCount} categorized, ${colorPatternMatchCount} passed color/pattern matching`);
       console.log(`[SEARCH] Upper: ${categorized.upper.length}, Lower: ${categorized.lower.length}, Footwear: ${categorized.footwear.length}, Accessories: ${categorized.accessories.length}`);
 
       // Fallback: Use Google Shopping API for categories with < 10 results
@@ -493,11 +567,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 });
               }
               
-              // Filter by Indian merchants and categorize
+              // Filter by Indian merchants, categorize, and check color/pattern
               let merchantFiltered = 0;
               let categoryFiltered = 0;
+              let colorPatternFiltered = 0;
               
-              const validItems = shoppingResults
+              const validItemsPromises = shoppingResults
                 .filter((item: any) => {
                   const source = item.source || '';
                   if (!isIndianMerchant(source)) {
@@ -513,13 +588,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   
                   return true;
                 })
-                .map((item: any) => ({
-                  ...item,
-                  link: item.product_link || item.link || '#' // Use product_link (Google Shopping page)
-                }))
+                .map(async (item: any) => {
+                  // Check color/pattern match for Shopping API results too
+                  if (styleAnalysis && item.thumbnail) {
+                    const { matches, colorSimilarity, patternSimilarity } = await matchesColorPattern(item.thumbnail);
+                    
+                    if (!matches) {
+                      colorPatternFiltered++;
+                      return null; // Filter out non-matching items
+                    }
+                    
+                    item.colorSimilarity = colorSimilarity;
+                    item.patternSimilarity = patternSimilarity;
+                  }
+                  
+                  return {
+                    ...item,
+                    link: item.product_link || item.link || '#' // Use product_link (Google Shopping page)
+                  };
+                });
+
+              const validItemsWithNull = await Promise.all(validItemsPromises);
+              const validItems = validItemsWithNull
+                .filter((item): item is any => item !== null)
                 .slice(0, 10 - categorized[category].length); // Only take what we need
 
-              console.log(`[SEARCH] ${category} filtering: ${merchantFiltered} failed merchant check, ${categoryFiltered} failed category check, ${validItems.length} valid`);
+              console.log(`[SEARCH] ${category} filtering: ${merchantFiltered} failed merchant check, ${categoryFiltered} failed category check, ${colorPatternFiltered} failed color/pattern check, ${validItems.length} valid`);
               
               return { category, items: validItems };
             } catch (error: any) {
