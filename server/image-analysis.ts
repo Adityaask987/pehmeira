@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import pLimit from "p-limit";
+import { z } from "zod";
 
 // Using Replit's AI Integrations service for Gemini
 const ai = new GoogleGenAI({
@@ -13,13 +14,16 @@ const ai = new GoogleGenAI({
 // Rate limiter: max 3 concurrent image analysis requests
 const analysisLimit = pLimit(3);
 
-export interface ImageAnalysis {
-  dominantColors: string[]; // Array of color names like ['black', 'red', 'gold']
-  colorHexCodes: string[]; // Array of hex codes like ['#000000', '#FF0000', '#FFD700']
-  pattern: string; // solid, striped, floral, geometric, polka-dot, abstract, checkered, printed
-  patternDetails: string; // Description of the pattern
-  garmentType: string; // Type of clothing item
-}
+// Zod schema for validating Gemini AI responses
+const imageAnalysisSchema = z.object({
+  dominantColors: z.array(z.string()).min(1).max(5),
+  colorHexCodes: z.array(z.string()).min(1).max(5),
+  pattern: z.string(),
+  patternDetails: z.string(),
+  garmentType: z.string(),
+});
+
+export type ImageAnalysis = z.infer<typeof imageAnalysisSchema>;
 
 /**
  * Analyze an image to extract color and pattern information using Gemini Vision
@@ -69,13 +73,36 @@ For patterns, be detailed - describe the type, size, and arrangement of the patt
       });
 
       const analysisText = response.text || "{}";
-      const analysis: ImageAnalysis = JSON.parse(analysisText);
       
+      // Parse and validate with zod
+      const parsedData = JSON.parse(analysisText);
+      const validationResult = imageAnalysisSchema.safeParse(parsedData);
+      
+      if (!validationResult.success) {
+        console.warn(`[IMAGE_ANALYSIS] Invalid response from Gemini, using defaults:`, validationResult.error);
+        // Return safe defaults if validation fails
+        return {
+          dominantColors: ["black", "white"],
+          colorHexCodes: ["#000000", "#FFFFFF"],
+          pattern: "solid",
+          patternDetails: "solid color",
+          garmentType: "clothing"
+        };
+      }
+      
+      const analysis = validationResult.data;
       console.log(`[IMAGE_ANALYSIS] Result:`, analysis);
       return analysis;
     } catch (error: any) {
       console.error(`[IMAGE_ANALYSIS] Error:`, error.message);
-      throw error;
+      // Return safe defaults on error instead of throwing
+      return {
+        dominantColors: ["black", "white"],
+        colorHexCodes: ["#000000", "#FFFFFF"],
+        pattern: "solid",
+        patternDetails: "solid color",
+        garmentType: "clothing"
+      };
     }
   });
 }

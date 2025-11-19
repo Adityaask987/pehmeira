@@ -272,17 +272,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? style.image 
         : `${req.protocol}://${req.get('host')}${style.image}`;
 
-      // Analyze the style image for color and pattern to enhance search queries
-      console.log(`[IMAGE_ANALYSIS] Analyzing style image for color and pattern information...`);
+      // Check if we have cached AI analysis for this style
       let styleAnalysis: ImageAnalysis | null = null;
       
-      try {
-        styleAnalysis = await analyzeImage(imageUrl);
-        console.log(`[IMAGE_ANALYSIS] Style colors: ${styleAnalysis.dominantColors.join(', ')}`);
-        console.log(`[IMAGE_ANALYSIS] Style pattern: ${styleAnalysis.pattern} - ${styleAnalysis.patternDetails}`);
-      } catch (error: any) {
-        console.error(`[IMAGE_ANALYSIS] Failed to analyze style image:`, error.message);
-        // Continue with generic search if analysis fails
+      if (style.aiAnalysis) {
+        styleAnalysis = style.aiAnalysis as ImageAnalysis;
+        console.log(`[IMAGE_ANALYSIS] Using cached analysis for style ${styleId}`);
+        console.log(`[IMAGE_ANALYSIS] Cached colors: ${styleAnalysis.dominantColors.join(', ')}`);
+        console.log(`[IMAGE_ANALYSIS] Cached pattern: ${styleAnalysis.pattern}`);
+      } else {
+        // Analyze the style image and cache the results
+        console.log(`[IMAGE_ANALYSIS] Analyzing style image for color and pattern information...`);
+        
+        try {
+          styleAnalysis = await analyzeImage(imageUrl);
+          console.log(`[IMAGE_ANALYSIS] New analysis - Colors: ${styleAnalysis.dominantColors.join(', ')}`);
+          console.log(`[IMAGE_ANALYSIS] New analysis - Pattern: ${styleAnalysis.pattern} - ${styleAnalysis.patternDetails}`);
+          
+          // Cache the analysis in the database for future requests
+          await storage.updateStyle(styleId, { aiAnalysis: styleAnalysis as any });
+          console.log(`[IMAGE_ANALYSIS] Cached analysis for style ${styleId}`);
+        } catch (error: any) {
+          console.error(`[IMAGE_ANALYSIS] Failed to analyze style image:`, error.message);
+          // Continue with generic search if analysis fails
+        }
       }
 
       // Indian e-commerce domain whitelist
