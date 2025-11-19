@@ -1,4 +1,4 @@
-import { Heart, Menu, X, User, LogOut } from "lucide-react";
+import { Heart, Menu, X, User, LogOut, Settings } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -110,6 +110,17 @@ export function Header({ wishlistCount = 0 }: HeaderProps) {
                       )}
                     </Link>
                   </DropdownMenuItem>
+                  {user.isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin" className="w-full cursor-pointer" data-testid="link-admin-menu">
+                          <Settings className="mr-2 h-4 w-4" />
+                          Admin Panel
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} data-testid="button-sign-out">
                     <LogOut className="mr-2 h-4 w-4" />
