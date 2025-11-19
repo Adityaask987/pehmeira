@@ -330,7 +330,7 @@ export default function AdminPage() {
           <Button
             onClick={handleAddNew}
             disabled={loading || !firebaseUser || isUnauthorized}
-            className="bg-gold text-black hover:bg-gold/90"
+            className="bg-gold text-white hover:bg-gold/90"
             data-testid="button-add-style"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -568,7 +568,7 @@ export default function AdminPage() {
                   <Button
                     type="submit"
                     disabled={!firebaseUser || createMutation.isPending || updateMutation.isPending || isUnauthorized}
-                    className="bg-gold text-black hover:bg-gold/90"
+                    className="bg-gold text-white hover:bg-gold/90"
                     data-testid="button-submit"
                   >
                     {editingStyle ? "Update" : "Create"}
