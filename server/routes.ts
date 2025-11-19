@@ -288,21 +288,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const fetchCategoryProducts = async (category: typeof categories[number]) => {
         try {
-          const apiUrl = `https://serpapi.com/search.json?engine=google_lens&image_url=${encodeURIComponent(imageUrl)}&q=${encodeURIComponent(searchQueries[category])}&api_key=${apiKey}`;
-          console.log(`[SEARCH] Fetching ${category} products from:`, apiUrl.replace(apiKey, 'API_KEY_HIDDEN'));
+          const apiUrl = `https://serpapi.com/search.json?engine=google_lens&url=${encodeURIComponent(imageUrl)}&api_key=${apiKey}`;
+          console.log(`[SEARCH] Fetching ${category} products`);
+          console.log(`[SEARCH] Image URL:`, imageUrl);
           
           const lensResponse = await fetch(apiUrl);
           
           if (!lensResponse.ok) {
-            console.error(`[SEARCH] Failed to fetch ${category} products:`, lensResponse.statusText);
+            const errorText = await lensResponse.text();
+            console.error(`[SEARCH] Failed ${category}:`, lensResponse.statusText);
+            console.error(`[SEARCH] Error details:`, errorText);
             return { category, products: [] };
           }
 
           const lensData = await lensResponse.json();
-          console.log(`[SEARCH] ${category} response keys:`, Object.keys(lensData));
+          console.log(`[SEARCH] ${category} response:`, JSON.stringify(lensData, null, 2).substring(0, 500));
           
           if (lensData.error) {
             console.error(`[SEARCH] SerpAPI error for ${category}:`, lensData.error);
+            return { category, products: [] };
           }
           
           const visualMatches = lensData.visual_matches || [];
