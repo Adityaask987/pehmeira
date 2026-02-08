@@ -73,13 +73,8 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-if (process.env.NODE_ENV === "development") {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { setupVite } = require("./vite");
-  await setupVite(app, server);
-} else {
-  console.log("Production mode: frontend served by Vercel");
-}
+// Frontend is deployed separately on Vercel
+console.log("Production mode: frontend served by Vercel");
 
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
