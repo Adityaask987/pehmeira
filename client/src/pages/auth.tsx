@@ -4,9 +4,12 @@ import { signInWithGoogle } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import logoUrl from "@assets/VCXCVCXCV-removebg-preview (1)_1762695915269.png";
+
+const logoUrl = "/pehmeira-logo.png";
+
 
 export default function Auth() {
+
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
